@@ -63,6 +63,12 @@ func (l *otpLogic) VerifyOTP(request gm.IRequest) (result interface{}, err error
 		err = errors.GetUnAuthorizedError()
 		return
 	}
+	count, err := removeCode(mobile)
+	if count <= 0 {
+		log.Println("otp code not removed")
+		err = errors.GetInternalServiceError()
+		return
+	}
 	result, err = CurrentConfig.LoginHandler.Login(base.CurrentConfig, mobile, base.Mobile)
 	return
 }
