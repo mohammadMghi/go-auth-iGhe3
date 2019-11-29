@@ -8,9 +8,9 @@ import (
 )
 
 type ILoginHandler interface {
-	Initialize()
-	GetProperties(key string, keyType keyType) (properties map[string]interface{})
-	Login(config *Config, key string, keyType keyType) (result interface{}, err error)
+	Initialize(handler ILoginHandler)
+	GetProperties(key string, keyType KeyType) (properties map[string]interface{})
+	Login(config *Config, key string, keyType KeyType) (result interface{}, err error)
 }
 
 type JwtLoginHandler struct {
@@ -20,21 +20,22 @@ type JwtLoginHandler struct {
 	SigningMethod jwt.SigningMethod
 }
 
-func (h *JwtLoginHandler) Initialize() {
+func (h *JwtLoginHandler) Initialize(handler ILoginHandler) {
 	if h.SigningMethod == nil {
 		h.SigningMethod = jwt.SigningMethodHS256
 	}
 	if h.SecretKey == nil {
 		h.SecretKey = []byte("secret key")
 	}
+	h.ILoginHandler = handler
 }
 
-func (h *JwtLoginHandler) GetProperties(key string, keyType keyType) (properties map[string]interface{}) {
+func (h *JwtLoginHandler) GetProperties(key string, keyType KeyType) (properties map[string]interface{}) {
 	properties = map[string]interface{}{}
 	return
 }
 
-func (h *JwtLoginHandler) NewRefreshToken(key string, keyType keyType, exp time.Duration) (token string, err error) {
+func (h *JwtLoginHandler) NewRefreshToken(key string, keyType KeyType, exp time.Duration) (token string, err error) {
 	b := make([]byte, 32)
 	_, err = rand.Read(b)
 	if err != nil {
@@ -50,8 +51,8 @@ func (h *JwtLoginHandler) NewRefreshToken(key string, keyType keyType, exp time.
 	return
 }
 
-func (h *JwtLoginHandler) Login(config *Config, key string, keyType keyType) (result interface{}, err error) {
-	properties := h.GetProperties(key, keyType)
+func (h *JwtLoginHandler) Login(config *Config, key string, keyType KeyType) (result interface{}, err error) {
+	properties := h.ILoginHandler.GetProperties(key, keyType)
 	claims := jwt.MapClaims(properties)
 	claims["nbf"] = time.Now().UTC().Format("2006-01-02T15:04:05Z")
 	expAt := time.Now().Add(time.Second*time.Duration(config.TokenExpSecs) +

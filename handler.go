@@ -24,14 +24,15 @@ func (h *Handler) Initialize(config *Config, baseConfig interface{}) (err error)
 	}
 	if config.LoginHandler == nil {
 		config.LoginHandler = &base.JwtLoginHandler{}
-		config.LoginHandler.Initialize()
 	}
+	config.LoginHandler.Initialize(config.LoginHandler)
 	config.InitializeConfig(baseConfig)
 	base.Initialize(&config.Config)
 	if config.Otp != nil {
 		if config.Otp.LoginHandler == nil {
 			config.Otp.LoginHandler = config.LoginHandler
 		}
+		config.Otp.LoginHandler.Initialize(config.Otp.LoginHandler)
 		otp.Initialize(config.Router, config.Otp)
 	}
 	h.config = config

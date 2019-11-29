@@ -1,7 +1,7 @@
 package base
 
-type keyType string
+type KeyType string
 
 const (
-	Mobile keyType = "MOBILE"
+	Mobile KeyType = "MOBILE"
 )
