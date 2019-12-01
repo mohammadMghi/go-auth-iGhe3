@@ -32,8 +32,13 @@ func (l *otpLogic) RequestOTP(request gm.IRequest) (err error) {
 		return
 	}
 	mobile := fmt.Sprintf("%v", mobileFace)
-	code, err := generateNewCode(mobile)
-	log.Println(fmt.Sprintf("OTP for mobile: `%s` is `%s`", mobile, code))
+	otp, err := generateNewOTP(mobile)
+	if err != nil {
+		log.Println(fmt.Sprintf("error on generateNewOTP, err: %v", err))
+	}
+	if otp != nil {
+		log.Println(fmt.Sprintf("OTP for mobile: `%s` is `%s`", mobile, otp.Code))
+	}
 	return
 }
 
@@ -54,19 +59,13 @@ func (l *otpLogic) VerifyOTP(request gm.IRequest) (result interface{}, err error
 		return
 	}
 	mobile := fmt.Sprintf("%v", mobileFace)
-	existingCode := fmt.Sprintf("%v", codeFace)
-	code, err := getCode(mobile)
+	code := fmt.Sprintf("%v", codeFace)
+	otp, err := getOTP(mobile)
 	if err != nil {
 		return
 	}
-	if existingCode != code {
-		err = errors.GetUnAuthorizedError()
-		return
-	}
-	count, err := removeCode(mobile)
-	if count <= 0 {
-		log.Println("otp code not removed")
-		err = errors.GetInternalServiceError()
+	err = verifyOTP(otp, code)
+	if err != nil {
 		return
 	}
 	result, err = CurrentConfig.LoginHandler.Login(base.CurrentConfig, mobile, base.Mobile)

@@ -8,5 +8,9 @@ import (
 type Config struct {
 	LoginHandler base.ILoginHandler
 
-	CodeExpiration time.Duration
+	CodeExpiration                    time.Duration
+	MaxRequestRetries                 int
+	MaxVerifyRetries                  int
+	ValidationExpiration              time.Duration
+	ResetMaxVerifyRetriesOnNewRequest bool
 }
