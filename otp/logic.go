@@ -8,6 +8,7 @@ import (
 	"github.com/go-ginger/models/errors"
 	"github.com/go-m/auth/base"
 	"log"
+	"strings"
 )
 
 type otpLogic struct {
@@ -18,6 +19,30 @@ var LogicHandler otpLogic
 
 func init() {
 	LogicHandler = otpLogic{IBaseLogicHandler: &gl.BaseLogicHandler{}}
+}
+
+func (l *otpLogic) normalizeMobile(mobile string) (normalized string) {
+	normalized = mobile
+	for strings.Contains(normalized, ")0") {
+		normalized = strings.Replace(normalized, ")0", ")", -1)
+	}
+	return
+}
+
+func (l *otpLogic) validateMobile(mobile string) (err error) {
+	if CurrentConfig.MobileValidationRegex != nil {
+		if !CurrentConfig.MobileValidationRegex.MatchString(mobile) {
+			err = errors.GetValidationError("Invalid mobile number")
+			return
+		}
+	}
+	if CurrentConfig.ValidateMobile != nil {
+		err = CurrentConfig.ValidateMobile(mobile)
+		if err != nil {
+			return
+		}
+	}
+	return
 }
 
 func (l *otpLogic) RequestOTP(request gm.IRequest) (err error) {
@@ -32,6 +57,11 @@ func (l *otpLogic) RequestOTP(request gm.IRequest) (err error) {
 		return
 	}
 	mobile := fmt.Sprintf("%v", mobileFace)
+	mobile = l.normalizeMobile(mobile)
+	err = l.validateMobile(mobile)
+	if err != nil {
+		return
+	}
 	otp, err := generateNewOTP(mobile)
 	if err != nil {
 		log.Println(fmt.Sprintf("error on generateNewOTP, err: %v", err))
@@ -59,12 +89,21 @@ func (l *otpLogic) VerifyOTP(request gm.IRequest) (result interface{}, err error
 		return
 	}
 	mobile := fmt.Sprintf("%v", mobileFace)
+	mobile = l.normalizeMobile(mobile)
+	err = l.validateMobile(mobile)
+	if err != nil {
+		return
+	}
 	code := fmt.Sprintf("%v", codeFace)
 	otp, err := getOTP(mobile)
 	if err != nil {
 		return
 	}
-	err = verifyOTP(otp, code)
+	if otp == nil {
+		err = errors.GetUnAuthorizedError()
+		return
+	}
+	err = otp.Verify(code)
 	if err != nil {
 		return
 	}

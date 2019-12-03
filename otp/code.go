@@ -19,11 +19,7 @@ type OTP struct {
 	LastCodeRequestTime          string
 }
 
-func getKey(mobile string) (key string) {
-	return fmt.Sprintf("otp:%s", mobile)
-}
-
-func generateNewOTP(mobile string) (otp *OTP, err error) {
+func (otp *OTP) Save() (err error) {
 	client, err := base.RedisHandler.GetClient()
 	if err != nil {
 		return
@@ -35,29 +31,6 @@ func generateNewOTP(mobile string) (otp *OTP, err error) {
 			log.Println(fmt.Sprintf("error while closing redis, err: %v", err))
 		}
 	}()
-	maxRequestRetries := CurrentConfig.MaxRequestRetries
-	maxVerifyRetries := CurrentConfig.MaxVerifyRetries
-	existingOTP, _ := getOTP(mobile)
-	if existingOTP != nil {
-		maxRequestRetries = existingOTP.RequestRetriesRemainingCount
-		if !CurrentConfig.ResetMaxVerifyRetriesOnNewRequest {
-			maxVerifyRetries = existingOTP.VerifyRetriesRemainingCount
-		}
-	}
-	if maxRequestRetries <= 0 {
-		err = errors.GetValidationError("Maximum retries limit exceeded. try again later")
-		return
-	}
-	otp = &OTP{
-		Code:                         fmt.Sprintf("%v", rand.Intn(10000)+1000),
-		Key:                          getKey(mobile),
-		RequestRetriesRemainingCount: maxRequestRetries - 1,
-		VerifyRetriesRemainingCount:  maxVerifyRetries,
-		LastCodeRequestTime:          time.Now().UTC().Format(time.RFC3339),
-	}
-	if base.CurrentConfig.Debug {
-		otp.Code = "1111"
-	}
 	serializedOtp, err := json.Marshal(otp)
 	if err != nil {
 		return
@@ -68,32 +41,8 @@ func generateNewOTP(mobile string) (otp *OTP, err error) {
 	return
 }
 
-func getOTP(mobile string) (otp *OTP, err error) {
-	client, err := base.RedisHandler.GetClient()
-	if err != nil {
-		return
-	}
-	defer func() {
-		e := client.Close()
-		if e != nil {
-			err = e
-			log.Println(fmt.Sprintf("error while closing redis, err: %v", err))
-		}
-	}()
-	val := client.Get(getKey(mobile)).Val()
-	if val != "" {
-		otp = new(OTP)
-		err = json.Unmarshal([]byte(val), &otp)
-		if err != nil {
-			otp = nil
-			return
-		}
-	}
-	return
-}
-
-func verifyOTP(otp *OTP, code string) (err error) {
-	if otp == nil {
+func (otp *OTP) Verify(code string) (err error) {
+	if code == "" {
 		err = errors.GetUnAuthorizedError()
 		return
 	}
@@ -137,11 +86,80 @@ func verifyOTP(otp *OTP, code string) (err error) {
 		err = errors.GetUnAuthorizedError()
 		return
 	}
-	count := client.Del(otp.Key).Val()
-	if count <= 0 {
-		log.Println("otp code not removed")
-		err = errors.GetInternalServiceError()
+	if CurrentConfig.ValidateOtp != nil {
+		err = CurrentConfig.ValidateOtp(otp, code)
+		if err != nil {
+			return
+		}
+	}
+	otp.Code = ""
+	err = otp.Save()
+	return
+}
+
+func getKey(mobile string) (key string) {
+	return fmt.Sprintf("otp:%s", mobile)
+}
+
+func generateNewOTP(mobile string) (otp *OTP, err error) {
+	client, err := base.RedisHandler.GetClient()
+	if err != nil {
 		return
+	}
+	defer func() {
+		e := client.Close()
+		if e != nil {
+			err = e
+			log.Println(fmt.Sprintf("error while closing redis, err: %v", err))
+		}
+	}()
+	maxRequestRetries := CurrentConfig.MaxRequestRetries
+	maxVerifyRetries := CurrentConfig.MaxVerifyRetries
+	existingOTP, _ := getOTP(mobile)
+	if existingOTP != nil {
+		maxRequestRetries = existingOTP.RequestRetriesRemainingCount
+		if !CurrentConfig.ResetMaxVerifyRetriesOnNewRequest {
+			maxVerifyRetries = existingOTP.VerifyRetriesRemainingCount
+		}
+	}
+	if maxRequestRetries <= 0 {
+		err = errors.GetValidationError("Maximum retries limit exceeded. try again later")
+		return
+	}
+	otp = &OTP{
+		Code:                         fmt.Sprintf("%v", rand.Intn(10000)+1000),
+		Key:                          getKey(mobile),
+		RequestRetriesRemainingCount: maxRequestRetries - 1,
+		VerifyRetriesRemainingCount:  maxVerifyRetries,
+		LastCodeRequestTime:          time.Now().UTC().Format(time.RFC3339),
+	}
+	if base.CurrentConfig.Debug {
+		otp.Code = "1111"
+	}
+	err = otp.Save()
+	return
+}
+
+func getOTP(mobile string) (otp *OTP, err error) {
+	client, err := base.RedisHandler.GetClient()
+	if err != nil {
+		return
+	}
+	defer func() {
+		e := client.Close()
+		if e != nil {
+			err = e
+			log.Println(fmt.Sprintf("error while closing redis, err: %v", err))
+		}
+	}()
+	val := client.Get(getKey(mobile)).Val()
+	if val != "" {
+		otp = new(OTP)
+		err = json.Unmarshal([]byte(val), &otp)
+		if err != nil {
+			otp = nil
+			return
+		}
 	}
 	return
 }

@@ -3,8 +3,8 @@ package auth
 import (
 	"errors"
 	"github.com/go-m/auth/base"
-
 	"github.com/go-m/auth/otp"
+	"regexp"
 )
 
 type Handler struct {
@@ -33,6 +33,13 @@ func (h *Handler) Initialize(config *Config, baseConfig interface{}) (err error)
 			config.Otp.LoginHandler = config.LoginHandler
 		}
 		config.Otp.LoginHandler.Initialize(config.Otp.LoginHandler)
+		if config.Otp.MobileValidationRegexPattern == nil {
+			regex := `^(\(\d{1,3}\))(\d{10})$`
+			config.Otp.MobileValidationRegexPattern = &regex
+		}
+		if *config.Otp.MobileValidationRegexPattern != "" {
+			config.Otp.MobileValidationRegex, err = regexp.Compile(*config.Otp.MobileValidationRegexPattern)
+		}
 		otp.Initialize(config.Router, config.Otp)
 	}
 	h.config = config
