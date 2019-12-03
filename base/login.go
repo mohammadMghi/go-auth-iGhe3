@@ -10,7 +10,7 @@ import (
 
 type ILoginHandler interface {
 	Initialize(handler ILoginHandler)
-	GetProperties(key string, keyType KeyType) (properties map[string]interface{})
+	GetProperties(key string, keyType KeyType) (properties map[string]interface{}, err error)
 	Login(config *Config, key string, keyType KeyType) (result interface{}, cookies []*http.Cookie, err error)
 }
 
@@ -31,7 +31,7 @@ func (h *JwtLoginHandler) Initialize(handler ILoginHandler) {
 	h.ILoginHandler = handler
 }
 
-func (h *JwtLoginHandler) GetProperties(key string, keyType KeyType) (properties map[string]interface{}) {
+func (h *JwtLoginHandler) GetProperties(key string, keyType KeyType) (properties map[string]interface{}, err error) {
 	properties = map[string]interface{}{}
 	return
 }
@@ -54,7 +54,10 @@ func (h *JwtLoginHandler) NewRefreshToken(key string, keyType KeyType, exp time.
 
 func (h *JwtLoginHandler) Login(config *Config, key string, keyType KeyType) (result interface{},
 	cookies []*http.Cookie, err error) {
-	properties := h.ILoginHandler.GetProperties(key, keyType)
+	properties, err := h.ILoginHandler.GetProperties(key, keyType)
+	if err != nil {
+		return
+	}
 	claims := jwt.MapClaims(properties)
 	claims["nbf"] = time.Now().UTC().Format("2006-01-02T15:04:05Z")
 	expAt := time.Now().Add(time.Second*time.Duration(config.TokenExpSecs) +
