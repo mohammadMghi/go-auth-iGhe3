@@ -8,6 +8,7 @@ import (
 	"github.com/go-ginger/models/errors"
 	"github.com/go-m/auth/base"
 	"log"
+	"net/http"
 	"strings"
 )
 
@@ -72,7 +73,7 @@ func (l *otpLogic) RequestOTP(request gm.IRequest) (err error) {
 	return
 }
 
-func (l *otpLogic) VerifyOTP(request gm.IRequest) (result interface{}, err error) {
+func (l *otpLogic) VerifyOTP(request gm.IRequest) (result interface{}, cookies []*http.Cookie, err error) {
 	var body map[string]interface{}
 	err = g.BindJSON(request.GetContext(), &body)
 	if err != nil {
@@ -107,6 +108,6 @@ func (l *otpLogic) VerifyOTP(request gm.IRequest) (result interface{}, err error
 	if err != nil {
 		return
 	}
-	result, err = CurrentConfig.LoginHandler.Login(base.CurrentConfig, mobile, base.Mobile)
+	result, cookies, err = CurrentConfig.LoginHandler.Login(base.CurrentConfig, mobile, base.Mobile)
 	return
 }

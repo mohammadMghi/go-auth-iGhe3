@@ -3,6 +3,7 @@ package base
 import (
 	"github.com/go-ginger/helpers"
 	m "github.com/go-ginger/models"
+	"net/http"
 	"reflect"
 	"strconv"
 )
@@ -20,6 +21,9 @@ type Config struct {
 
 	TokenExpSecs        int
 	RefreshTokenExpSecs int
+
+	CookieEnabled bool
+	CookiePattern *http.Cookie
 }
 
 var CurrentConfig *Config

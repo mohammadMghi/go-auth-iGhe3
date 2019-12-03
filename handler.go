@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/go-m/auth/base"
 	"github.com/go-m/auth/otp"
+	"net/http"
 	"regexp"
 )
 
@@ -41,6 +42,16 @@ func (h *Handler) Initialize(config *Config, baseConfig interface{}) (err error)
 			config.Otp.MobileValidationRegex, err = regexp.Compile(*config.Otp.MobileValidationRegexPattern)
 		}
 		otp.Initialize(config.Router, config.Otp)
+	}
+	if config.CookieEnabled {
+		if config.CookiePattern == nil {
+			config.CookiePattern = &http.Cookie{
+				Name:     "AccessToken",
+				Path:     "/",
+				Secure:   false,
+				HttpOnly: false,
+			}
+		}
 	}
 	h.config = config
 	return

@@ -4,13 +4,14 @@ import (
 	"fmt"
 	"github.com/dgrijalva/jwt-go"
 	"math/rand"
+	"net/http"
 	"time"
 )
 
 type ILoginHandler interface {
 	Initialize(handler ILoginHandler)
 	GetProperties(key string, keyType KeyType) (properties map[string]interface{})
-	Login(config *Config, key string, keyType KeyType) (result interface{}, err error)
+	Login(config *Config, key string, keyType KeyType) (result interface{}, cookies []*http.Cookie, err error)
 }
 
 type JwtLoginHandler struct {
@@ -51,7 +52,8 @@ func (h *JwtLoginHandler) NewRefreshToken(key string, keyType KeyType, exp time.
 	return
 }
 
-func (h *JwtLoginHandler) Login(config *Config, key string, keyType KeyType) (result interface{}, err error) {
+func (h *JwtLoginHandler) Login(config *Config, key string, keyType KeyType) (result interface{},
+	cookies []*http.Cookie, err error) {
 	properties := h.ILoginHandler.GetProperties(key, keyType)
 	claims := jwt.MapClaims(properties)
 	claims["nbf"] = time.Now().UTC().Format("2006-01-02T15:04:05Z")
@@ -73,6 +75,18 @@ func (h *JwtLoginHandler) Login(config *Config, key string, keyType KeyType) (re
 		"refresh_token":      refreshToken,
 		"expires_in":         config.TokenExpSecs,
 		"refresh_expires_in": config.RefreshTokenExpSecs,
+	}
+	if CurrentConfig.CookieEnabled {
+		cookies = []*http.Cookie{
+			{
+				Name:     CurrentConfig.CookiePattern.Name,
+				Value:    tokenString,
+				MaxAge:   config.TokenExpSecs,
+				Path:     CurrentConfig.CookiePattern.Path,
+				Secure:   CurrentConfig.CookiePattern.Secure,
+				HttpOnly: CurrentConfig.CookiePattern.HttpOnly,
+			},
+		}
 	}
 	return
 }
