@@ -51,6 +51,13 @@ func (otp *OTP) Verify(code string) (err error) {
 		return
 	}
 	defer func() {
+		defer func() {
+			e := client.Close()
+			if e != nil {
+				err = e
+				log.Println(fmt.Sprintf("error while closing redis, err: %v", err))
+			}
+		}()
 		if err != nil {
 			// check err == nil -> may have verified the code and removed otp
 			// so saving again will cause generate again otp and can verify
@@ -69,11 +76,6 @@ func (otp *OTP) Verify(code string) (err error) {
 					err = e
 				}
 			}
-		}
-		e := client.Close()
-		if e != nil {
-			err = e
-			log.Println(fmt.Sprintf("error while closing redis, err: %v", err))
 		}
 	}()
 	lastCodeRequestTime, err := time.Parse(time.RFC3339, otp.LastCodeRequestTime)

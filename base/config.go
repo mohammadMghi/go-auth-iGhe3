@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"reflect"
 	"strconv"
+	"time"
 )
 
 type Config struct {
@@ -19,8 +20,8 @@ type Config struct {
 	RedisPwd  string
 	RedisDb   int
 
-	TokenExpSecs        int
-	RefreshTokenExpSecs int
+	TokenExp        time.Duration
+	RefreshTokenExp time.Duration
 
 	CookieEnabled bool
 	CookiePattern *http.Cookie

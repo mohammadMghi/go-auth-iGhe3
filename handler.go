@@ -3,9 +3,13 @@ package auth
 import (
 	"errors"
 	"github.com/go-m/auth/base"
+	"github.com/go-m/auth/handler"
 	"github.com/go-m/auth/otp"
+	"github.com/go-m/auth/refresh"
+	"math/rand"
 	"net/http"
 	"regexp"
+	"time"
 )
 
 type Handler struct {
@@ -13,18 +17,19 @@ type Handler struct {
 }
 
 func (h *Handler) Initialize(config *Config, baseConfig interface{}) (err error) {
+	rand.Seed(time.Now().UTC().UnixNano())
 	if config == nil {
 		err = errors.New("config can not be null")
 		return
 	}
-	if config.TokenExpSecs == 0 {
-		config.TokenExpSecs = 15 * 60 // 15 minutes
+	if config.TokenExp == 0 {
+		config.TokenExp = time.Minute * 15
 	}
-	if config.RefreshTokenExpSecs == 0 {
-		config.RefreshTokenExpSecs = 7 * 24 * 60 * 60 // one week
+	if config.RefreshTokenExp == 0 {
+		config.RefreshTokenExp = 7 * 24 * time.Hour
 	}
 	if config.LoginHandler == nil {
-		config.LoginHandler = &base.JwtLoginHandler{}
+		config.LoginHandler = &handler.Jwt{}
 	}
 	config.LoginHandler.Initialize(config.LoginHandler)
 	config.InitializeConfig(baseConfig)
@@ -43,6 +48,7 @@ func (h *Handler) Initialize(config *Config, baseConfig interface{}) (err error)
 		}
 		otp.Initialize(config.Router, config.Otp)
 	}
+	refresh.Initialize(config.Router)
 	if config.CookieEnabled {
 		if config.CookiePattern == nil {
 			config.CookiePattern = &http.Cookie{
