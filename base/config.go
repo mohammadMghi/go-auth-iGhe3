@@ -23,6 +23,13 @@ type Config struct {
 	TokenExp        time.Duration
 	RefreshTokenExp time.Duration
 
+	// if true, checks authentication before any request
+	OptionalAuthOnAnyRequest bool
+	// if true, authentication response will be available in header.
+	// useful when using OptionalAuthOnAnyRequest=true, which makes check
+	// authentication on any request and response in header of response
+	AllowAuthResponseHeaders bool
+
 	CookieEnabled bool
 	CookiePattern *http.Cookie
 }

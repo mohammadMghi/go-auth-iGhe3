@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"fmt"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/go-m/auth/base"
 	"github.com/go-m/auth/refresh"
@@ -36,7 +37,7 @@ func (h *Jwt) Refresh(config *base.Config, token string) (result interface{},
 }
 
 func (h *Jwt) Login(config *base.Config, key string, keyType base.KeyType) (result interface{},
-	cookies []*http.Cookie, err error) {
+	headers map[string]string, cookies []*http.Cookie, err error) {
 	properties, err := h.ILoginHandler.GetProperties(key, keyType)
 	if err != nil {
 		return
@@ -60,6 +61,14 @@ func (h *Jwt) Login(config *base.Config, key string, keyType base.KeyType) (resu
 		"refresh_token":      refreshToken.Value,
 		"expires_in":         expiresIn,
 		"refresh_expires_in": int(config.RefreshTokenExp.Seconds()),
+	}
+	if base.CurrentConfig.AllowAuthResponseHeaders {
+		headers = map[string]string{
+			"X-Access-Token":       tokenString,
+			"X-Refresh-Token":      refreshToken.Value,
+			"X-Expires-In":         fmt.Sprintf("%v", expiresIn),
+			"X-Refresh-Expires-In": fmt.Sprintf("%v", int(config.RefreshTokenExp.Seconds())),
+		}
 	}
 	if base.CurrentConfig.CookieEnabled {
 		cookies = []*http.Cookie{

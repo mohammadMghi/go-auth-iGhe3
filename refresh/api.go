@@ -7,7 +7,6 @@ import (
 	gm "github.com/go-ginger/models"
 	"github.com/go-ginger/models/errors"
 	"github.com/go-m/auth/base"
-	"net/http"
 )
 
 type refreshController struct {
@@ -33,17 +32,9 @@ func (c *refreshController) Post(request gm.IRequest) (result interface{}) {
 	if c.HandleError(request, refresh, err) {
 		return
 	}
-	result, cookies, err := base.CurrentConfig.LoginHandler.Login(
-		base.CurrentConfig, refresh.Key, refresh.KeyType)
-	if c.HandleError(request, result, err) {
+	err = base.HandleLoginResponse(request, refresh.Key, refresh.KeyType)
+	if c.HandleErrorNoResult(request, err) {
 		return
 	}
-	ctx := request.GetContext()
-	if cookies != nil {
-		for _, cookie := range cookies {
-			http.SetCookie(ctx.Writer, cookie)
-		}
-	}
-	ctx.JSON(200, result)
 	return
 }

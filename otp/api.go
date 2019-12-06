@@ -3,7 +3,7 @@ package otp
 import (
 	"github.com/go-ginger/ginger"
 	gm "github.com/go-ginger/models"
-	"net/http"
+	"github.com/go-m/auth/base"
 )
 
 type requestOtpController struct {
@@ -24,16 +24,13 @@ type verifyOtpController struct {
 }
 
 func (c *verifyOtpController) Post(request gm.IRequest) (result interface{}) {
-	result, cookies, err := LogicHandler.VerifyOTP(request)
-	if c.HandleError(request, result, err) {
+	key, keyType, err := LogicHandler.VerifyOTP(request)
+	if c.HandleErrorNoResult(request, err) {
 		return
 	}
-	ctx := request.GetContext()
-	if cookies != nil {
-		for _, cookie := range cookies {
-			http.SetCookie(ctx.Writer, cookie)
-		}
+	err = base.HandleLoginResponse(request, key, keyType)
+	if c.HandleErrorNoResult(request, err) {
+		return
 	}
-	ctx.JSON(200, result)
 	return
 }
