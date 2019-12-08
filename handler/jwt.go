@@ -64,10 +64,10 @@ func (h *Jwt) Login(config *base.Config, key string, keyType base.KeyType) (resu
 	}
 	if base.CurrentConfig.AllowAuthResponseHeaders {
 		headers = map[string]string{
-			"X-Access-Token":       tokenString,
-			"X-Refresh-Token":      refreshToken.Value,
-			"X-Expires-In":         fmt.Sprintf("%v", expiresIn),
-			"X-Refresh-Expires-In": fmt.Sprintf("%v", int(config.RefreshTokenExp.Seconds())),
+			"X-Access-Token":                         tokenString,
+			base.CurrentConfig.RefreshTokenHeaderKey: refreshToken.Value,
+			"X-Expires-In":                           fmt.Sprintf("%v", expiresIn),
+			"X-Refresh-Expires-In":                   fmt.Sprintf("%v", int(config.RefreshTokenExp.Seconds())),
 		}
 	}
 	if base.CurrentConfig.CookieEnabled {

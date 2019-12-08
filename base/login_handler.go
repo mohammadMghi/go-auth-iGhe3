@@ -13,7 +13,7 @@ type ILoginHandler interface {
 		cookies []*http.Cookie, err error)
 }
 
-func HandleLoginResponse(request gm.IRequest, key string, keyType KeyType) (err error) {
+func HandleLoginResponse(request gm.IRequest, key string, keyType KeyType, preventResponseBody ...bool) (err error) {
 	result, headers, cookies, err := CurrentConfig.LoginHandler.Login(CurrentConfig, key, keyType)
 	if err != nil {
 		return
@@ -32,6 +32,9 @@ func HandleLoginResponse(request gm.IRequest, key string, keyType KeyType) (err 
 		for k, v := range headers {
 			ctx.Header(k, v)
 		}
+	}
+	if preventResponseBody != nil && preventResponseBody[0] {
+		return
 	}
 	ctx.JSON(200, result)
 	return

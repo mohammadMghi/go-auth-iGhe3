@@ -9,6 +9,7 @@ import (
 type Config struct {
 	base.Config
 
-	Router *g.RouterGroup
-	Otp    *otp.Config
+	AuthRouters []*g.RouterGroup
+	Router      *g.RouterGroup
+	Otp         *otp.Config
 }

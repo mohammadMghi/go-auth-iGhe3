@@ -60,5 +60,12 @@ func (h *Handler) Initialize(config *Config, baseConfig interface{}) (err error)
 		}
 	}
 	h.config = config
+	if config.OptionalAuthOnAnyRequest {
+		if config.AuthRouters != nil {
+			for _, routes := range config.AuthRouters {
+				routes.Any(middleware)
+			}
+		}
+	}
 	return
 }

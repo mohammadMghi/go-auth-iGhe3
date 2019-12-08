@@ -3,6 +3,7 @@ package refresh
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/go-ginger/models/errors"
 	"github.com/go-m/auth/base"
 	"log"
 	"math/rand"
@@ -36,7 +37,7 @@ func New(key string, keyType base.KeyType, exp time.Duration) (token *Token, err
 	return
 }
 
-func getToken(value string) (token *Token, err error) {
+func GetToken(value string) (token *Token, err error) {
 	client, err := base.RedisHandler.GetClient()
 	if err != nil {
 		return
@@ -54,6 +55,11 @@ func getToken(value string) (token *Token, err error) {
 		err = json.Unmarshal([]byte(val), &token)
 		if err != nil {
 			token = nil
+			return
+		}
+		deleted := deleteToken(token.Value)
+		if !deleted {
+			err = errors.GetInternalServiceError("could not delete old refresh token")
 			return
 		}
 	}

@@ -29,6 +29,8 @@ type Config struct {
 	// useful when using OptionalAuthOnAnyRequest=true, which makes check
 	// authentication on any request and response in header of response
 	AllowAuthResponseHeaders bool
+	// key of refresh token header
+	RefreshTokenHeaderKey string
 
 	CookieEnabled bool
 	CookiePattern *http.Cookie
