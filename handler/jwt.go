@@ -70,8 +70,8 @@ func (h *Jwt) Login(request gm.IRequest, config *base.Config, key string, keyTyp
 		return
 	}
 	claims := jwt.MapClaims(properties)
-	claims["nbf"] = time.Now().UTC().Format("2006-01-02T15:04:05Z")
-	expAt := time.Now().Add(config.TokenExp + time.Second).UTC().Format("2006-01-02T15:04:05Z")
+	claims["nbf"] = time.Now().UTC().Unix()
+	expAt := time.Now().Add(config.TokenExp + time.Second).UTC().Unix()
 	claims["exp"] = expAt
 	token := jwt.NewWithClaims(h.SigningMethod, claims)
 	tokenString, err := token.SignedString(h.SecretKey)
