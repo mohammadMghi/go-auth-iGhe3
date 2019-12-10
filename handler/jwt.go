@@ -3,14 +3,26 @@ package handler
 import (
 	"fmt"
 	"github.com/dgrijalva/jwt-go"
+	g "github.com/go-ginger/ginger"
+	gm "github.com/go-ginger/models"
+	"github.com/go-ginger/models/errors"
 	"github.com/go-m/auth/base"
 	"github.com/go-m/auth/refresh"
 	"net/http"
+	"strings"
 	"time"
 )
 
+type Authorization struct {
+	base.Authorization
+
+	ParsedToken jwt.Token
+	Claims      jwt.MapClaims
+}
+
 type Jwt struct {
 	base.ILoginHandler
+	*Authorization
 
 	SecretKey     []byte
 	SigningMethod jwt.SigningMethod
@@ -36,7 +48,22 @@ func (h *Jwt) Refresh(config *base.Config, token string) (result interface{},
 	return
 }
 
-func (h *Jwt) Login(config *base.Config, key string, keyType base.KeyType) (result interface{},
+func (h *Jwt) HandleError(request gm.IRequest, err error) (handled bool) {
+	if err == nil {
+		return false
+	}
+	e, ok := err.(errors.Error)
+	if !ok {
+		err = errors.GetUnAuthorizedError()
+		e = err.(errors.Error)
+	}
+	req := request.GetBaseRequest()
+	req.Context.JSON(e.Status, e)
+	req.Context.Abort()
+	return true
+}
+
+func (h *Jwt) Login(request gm.IRequest, config *base.Config, key string, keyType base.KeyType) (result interface{},
 	headers map[string]string, cookies []*http.Cookie, err error) {
 	properties, err := h.ILoginHandler.GetProperties(key, keyType)
 	if err != nil {
@@ -82,5 +109,111 @@ func (h *Jwt) Login(config *base.Config, key string, keyType base.KeyType) (resu
 			},
 		}
 	}
+	req := request.GetBaseRequest()
+	req.Auth = &Authorization{
+		Authorization: base.Authorization{
+			Token: tokenString,
+		},
+	}
 	return
+}
+
+func (h *Jwt) Authenticate(request gm.IRequest) (err error) {
+	req := request.GetBaseRequest()
+	if req.Auth == nil {
+		tokenStr := req.Context.GetHeader("Authorization")
+		if tokenStr == "" {
+			if base.CurrentConfig.CookieEnabled {
+				tokenStr, err = req.Context.Cookie(base.CurrentConfig.CookiePattern.Name)
+				if err != nil {
+					return
+				}
+			}
+		}
+		if tokenStr == "" {
+			err = errors.GetUnAuthorizedError()
+			return
+		}
+		splitToken := strings.Split(tokenStr, "bearer")
+		if len(splitToken) == 2 {
+			tokenStr = strings.TrimSpace(splitToken[1])
+		}
+		req.Auth = &Authorization{
+			Authorization: base.Authorization{
+				Token: tokenStr,
+			},
+		}
+	}
+	authorization := req.Auth.(*Authorization)
+	if authorization.IsAuthenticated {
+		return
+	}
+	parsed, err := jwt.Parse(authorization.Token, func(token *jwt.Token) (interface{}, error) {
+		return h.SecretKey, nil
+	})
+	if err != nil {
+		return
+	}
+	authorization.IsAuthenticated = parsed.Valid
+	authorization.Claims = parsed.Claims.(jwt.MapClaims)
+	h.Authorization = authorization
+	return
+}
+
+func (h *Jwt) MustAuthenticated() g.HandlerFunc {
+	return func(request gm.IRequest) (result interface{}) {
+		var err error
+		defer func() {
+			h.HandleError(request, err)
+		}()
+		err = h.Authenticate(request)
+		if err != nil {
+			return
+		}
+		if !h.IsAuthenticated {
+			err = errors.GetUnAuthorizedError()
+			return
+		}
+		return
+	}
+}
+func (h *Jwt) MustHaveRole(roles ...string) g.HandlerFunc {
+	return func(request gm.IRequest) (result interface{}) {
+		req := request.GetBaseRequest()
+		var err error
+		defer func() {
+			if err != nil {
+				h.HandleError(request, err)
+			}
+		}()
+		err = h.Authenticate(request)
+		if err != nil {
+			return
+		}
+		hasRole := func() bool {
+			for _, role := range roles {
+				if role == "id" {
+					// check id matches with current request id
+					currentID, _ := h.Authorization.Claims["id"]
+					if req.ID == currentID {
+						return true
+					}
+				}
+				if iCurrentRoles, ok := h.Authorization.Claims["roles"]; ok {
+					currentRoles := iCurrentRoles.([]string)
+					for _, currentRole := range currentRoles {
+						if role == currentRole {
+							return true
+						}
+					}
+				}
+			}
+			return false
+		}()
+		if !hasRole {
+			err = errors.GetForbiddenError()
+			return
+		}
+		return
+	}
 }
