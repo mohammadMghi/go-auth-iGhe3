@@ -13,7 +13,7 @@ type ILoginHandler interface {
 	Login(request gm.IRequest, config *Config, key string, keyType KeyType) (result interface{},
 		headers map[string]string, cookies []*http.Cookie, err error)
 	Authenticate(request gm.IRequest) (err error)
-	MustAuthenticated() g.HandlerFunc
+	MustAuthenticate() g.HandlerFunc
 	MustHaveRole(roles ...string) g.HandlerFunc
 }
 

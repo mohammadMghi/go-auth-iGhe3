@@ -154,13 +154,16 @@ func (h *Jwt) Authenticate(request gm.IRequest) (err error) {
 	if err != nil {
 		return
 	}
-	authorization.IsAuthenticated = parsed.Valid
 	authorization.Claims = parsed.Claims.(jwt.MapClaims)
 	h.Authorization = authorization
+	unixNow := time.Now().UTC().Unix()
+	authorization.IsAuthenticated = parsed.Valid &&
+		authorization.Claims.VerifyExpiresAt(unixNow, true) &&
+		authorization.Claims.VerifyNotBefore(unixNow, true)
 	return
 }
 
-func (h *Jwt) MustAuthenticated() g.HandlerFunc {
+func (h *Jwt) MustAuthenticate() g.HandlerFunc {
 	return func(request gm.IRequest) (result interface{}) {
 		var err error
 		defer func() {
@@ -188,6 +191,10 @@ func (h *Jwt) MustHaveRole(roles ...string) g.HandlerFunc {
 		}()
 		err = h.Authenticate(request)
 		if err != nil {
+			return
+		}
+		if !h.IsAuthenticated {
+			err = errors.GetUnAuthorizedError()
 			return
 		}
 		hasRole := func() bool {
