@@ -198,9 +198,10 @@ func (h *Jwt) MustHaveRole(roles ...string) g.HandlerFunc {
 					if req.ID == currentID {
 						return true
 					}
+					continue
 				}
 				if iCurrentRoles, ok := h.Authorization.Claims["roles"]; ok {
-					currentRoles := iCurrentRoles.([]string)
+					currentRoles := iCurrentRoles.([]interface{})
 					for _, currentRole := range currentRoles {
 						if role == currentRole {
 							return true
