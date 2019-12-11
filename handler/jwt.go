@@ -65,9 +65,13 @@ func (h *Jwt) HandleError(request gm.IRequest, err error) (handled bool) {
 
 func (h *Jwt) Login(request gm.IRequest, config *base.Config, key string, keyType base.KeyType) (result interface{},
 	headers map[string]string, cookies []*http.Cookie, err error) {
-	properties, err := h.ILoginHandler.GetProperties(key, keyType)
+	info, err := h.ILoginHandler.GetInfo(request, key, keyType)
 	if err != nil {
 		return
+	}
+	var properties map[string]interface{}
+	if info != nil {
+		properties = info.GetProperties()
 	}
 	claims := jwt.MapClaims(properties)
 	claims["nbf"] = time.Now().UTC().Unix()
@@ -83,12 +87,21 @@ func (h *Jwt) Login(request gm.IRequest, config *base.Config, key string, keyTyp
 		return
 	}
 	expiresIn := int(config.TokenExp.Seconds())
-	result = map[string]interface{}{
+	resultMap := map[string]interface{}{
 		"access_token":       tokenString,
 		"refresh_token":      refreshToken.Value,
 		"expires_in":         expiresIn,
 		"refresh_expires_in": int(config.RefreshTokenExp.Seconds()),
 	}
+	if info != nil {
+		extraData := info.GetExtraData()
+		if extraData != nil {
+			for k, v := range extraData {
+				resultMap[k] = v
+			}
+		}
+	}
+	result = resultMap
 	if base.CurrentConfig.AllowAuthResponseHeaders {
 		headers = map[string]string{
 			"X-Access-Token":                         tokenString,

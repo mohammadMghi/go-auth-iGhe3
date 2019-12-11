@@ -7,9 +7,26 @@ import (
 	"net/http"
 )
 
+type ILoginInfo interface {
+	GetProperties() map[string]interface{}
+	GetExtraData() map[string]interface{}
+}
+type LoginInfo struct {
+	ILoginInfo
+	Properties map[string]interface{}
+	ExtraData  map[string]interface{}
+}
+
+func (l *LoginInfo) GetProperties() map[string]interface{} {
+	return l.Properties
+}
+func (l *LoginInfo) GetExtraData() map[string]interface{} {
+	return l.ExtraData
+}
+
 type ILoginHandler interface {
 	Initialize(handler ILoginHandler)
-	GetProperties(key string, keyType KeyType) (properties map[string]interface{}, err error)
+	GetInfo(request gm.IRequest, key string, keyType KeyType) (info ILoginInfo, err error)
 	Login(request gm.IRequest, config *Config, key string, keyType KeyType) (result interface{},
 		headers map[string]string, cookies []*http.Cookie, err error)
 	Authenticate(request gm.IRequest) (err error)
