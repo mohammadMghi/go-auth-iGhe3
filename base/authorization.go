@@ -12,6 +12,10 @@ type Authorization struct {
 	Roles           []string
 }
 
+func (a *Authorization) GetBase() gm.IAuthorization {
+	return a
+}
+
 func (a *Authorization) Authenticated() bool {
 	return a.IsAuthenticated
 }

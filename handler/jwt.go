@@ -13,22 +13,25 @@ import (
 	"time"
 )
 
-type Authorization struct {
+type JwtAuthorization struct {
 	base.Authorization
 
 	ParsedToken jwt.Token
 	Claims      jwt.MapClaims
 }
 
-type Jwt struct {
-	base.ILoginHandler
-	*Authorization
-
-	SecretKey     []byte
-	SigningMethod jwt.SigningMethod
+func (a *JwtAuthorization) GetBase() gm.IAuthorization {
+	return a
 }
 
-func (h *Jwt) Initialize(handler base.ILoginHandler) {
+type JwtLoginHandler struct {
+	base.ILoginHandler
+
+	SecretKey           []byte
+	SigningMethod       jwt.SigningMethod
+}
+
+func (h *JwtLoginHandler) Initialize(handler base.ILoginHandler) {
 	if h.SigningMethod == nil {
 		h.SigningMethod = jwt.SigningMethodHS256
 	}
@@ -38,17 +41,25 @@ func (h *Jwt) Initialize(handler base.ILoginHandler) {
 	h.ILoginHandler = handler
 }
 
-func (h *Jwt) GetProperties(key string, keyType base.KeyType) (properties map[string]interface{}, err error) {
+func (h *JwtLoginHandler) NewAuthorization(authInfo interface{}) gm.IAuthorization {
+	return &JwtAuthorization{
+		Authorization: base.Authorization{
+			Token: authInfo.(string),
+		},
+	}
+}
+
+func (h *JwtLoginHandler) GetProperties(key string, keyType base.KeyType) (properties map[string]interface{}, err error) {
 	properties = map[string]interface{}{}
 	return
 }
 
-func (h *Jwt) Refresh(config *base.Config, token string) (result interface{},
+func (h *JwtLoginHandler) Refresh(config *base.Config, token string) (result interface{},
 	cookies []*http.Cookie, err error) {
 	return
 }
 
-func (h *Jwt) HandleError(request gm.IRequest, err error) (handled bool) {
+func (h *JwtLoginHandler) HandleError(request gm.IRequest, err error) (handled bool) {
 	if err == nil {
 		return false
 	}
@@ -63,7 +74,7 @@ func (h *Jwt) HandleError(request gm.IRequest, err error) (handled bool) {
 	return true
 }
 
-func (h *Jwt) Login(request gm.IRequest, config *base.Config, key string, keyType base.KeyType) (result interface{},
+func (h *JwtLoginHandler) Login(request gm.IRequest, config *base.Config, key string, keyType base.KeyType) (result interface{},
 	headers map[string]string, cookies []*http.Cookie, err error) {
 	info, err := h.ILoginHandler.GetInfo(request, key, keyType)
 	if err != nil {
@@ -123,15 +134,11 @@ func (h *Jwt) Login(request gm.IRequest, config *base.Config, key string, keyTyp
 		}
 	}
 	req := request.GetBaseRequest()
-	req.Auth = &Authorization{
-		Authorization: base.Authorization{
-			Token: tokenString,
-		},
-	}
+	req.Auth = h.ILoginHandler.NewAuthorization(tokenString)
 	return
 }
 
-func (h *Jwt) Authenticate(request gm.IRequest) (err error) {
+func (h *JwtLoginHandler) Authenticate(request gm.IRequest) (err error) {
 	req := request.GetBaseRequest()
 	if req.Auth == nil {
 		tokenStr := req.Context.GetHeader("Authorization")
@@ -151,13 +158,9 @@ func (h *Jwt) Authenticate(request gm.IRequest) (err error) {
 		if len(splitToken) == 2 {
 			tokenStr = strings.TrimSpace(splitToken[1])
 		}
-		req.Auth = &Authorization{
-			Authorization: base.Authorization{
-				Token: tokenStr,
-			},
-		}
+		req.Auth = h.ILoginHandler.NewAuthorization(tokenStr)
 	}
-	authorization := req.Auth.(*Authorization)
+	authorization := request.GetAuth().GetBase().(*JwtAuthorization)
 	if authorization.IsAuthenticated {
 		return
 	}
@@ -168,7 +171,6 @@ func (h *Jwt) Authenticate(request gm.IRequest) (err error) {
 		return
 	}
 	authorization.Claims = parsed.Claims.(jwt.MapClaims)
-	h.Authorization = authorization
 	unixNow := time.Now().UTC().Unix()
 	authorization.IsAuthenticated = parsed.Valid &&
 		authorization.Claims.VerifyExpiresAt(unixNow, true) &&
@@ -176,7 +178,7 @@ func (h *Jwt) Authenticate(request gm.IRequest) (err error) {
 	return
 }
 
-func (h *Jwt) MustAuthenticate() g.HandlerFunc {
+func (h *JwtLoginHandler) MustAuthenticate() g.HandlerFunc {
 	return func(request gm.IRequest) (result interface{}) {
 		var err error
 		defer func() {
@@ -186,14 +188,15 @@ func (h *Jwt) MustAuthenticate() g.HandlerFunc {
 		if err != nil {
 			return
 		}
-		if !h.IsAuthenticated {
+		auth := request.GetAuth()
+		if !auth.Authenticated() {
 			err = errors.GetUnAuthorizedError()
 			return
 		}
 		return
 	}
 }
-func (h *Jwt) MustHaveRole(roles ...string) g.HandlerFunc {
+func (h *JwtLoginHandler) MustHaveRole(roles ...string) g.HandlerFunc {
 	return func(request gm.IRequest) (result interface{}) {
 		req := request.GetBaseRequest()
 		var err error
@@ -206,7 +209,8 @@ func (h *Jwt) MustHaveRole(roles ...string) g.HandlerFunc {
 		if err != nil {
 			return
 		}
-		if !h.IsAuthenticated {
+		auth := request.GetAuth().GetBase().(*JwtAuthorization)
+		if !auth.IsAuthenticated {
 			err = errors.GetUnAuthorizedError()
 			return
 		}
@@ -214,13 +218,13 @@ func (h *Jwt) MustHaveRole(roles ...string) g.HandlerFunc {
 			for _, role := range roles {
 				if role == "id" {
 					// check id matches with current request id
-					currentID, _ := h.Authorization.Claims["id"]
+					currentID, _ := auth.Claims["id"]
 					if req.ID == currentID {
 						return true
 					}
 					continue
 				}
-				if iCurrentRoles, ok := h.Authorization.Claims["roles"]; ok {
+				if iCurrentRoles, ok := auth.Claims["roles"]; ok {
 					currentRoles := iCurrentRoles.([]interface{})
 					for _, currentRole := range currentRoles {
 						if role == currentRole {

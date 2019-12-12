@@ -26,6 +26,7 @@ func (l *LoginInfo) GetExtraData() map[string]interface{} {
 
 type ILoginHandler interface {
 	Initialize(handler ILoginHandler)
+	NewAuthorization(authInfo interface{}) gm.IAuthorization
 	GetInfo(request gm.IRequest, key string, keyType KeyType) (info ILoginInfo, err error)
 	Login(request gm.IRequest, config *Config, key string, keyType KeyType) (result interface{},
 		headers map[string]string, cookies []*http.Cookie, err error)

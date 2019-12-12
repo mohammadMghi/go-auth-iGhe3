@@ -3,5 +3,6 @@ package base
 type KeyType string
 
 const (
-	Mobile KeyType = "MOBILE"
+	Mobile   KeyType = "MOBILE"
+	Password KeyType = "PASSWORD"
 )
