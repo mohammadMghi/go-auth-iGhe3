@@ -18,12 +18,6 @@ func (c *loginController) Post(request gm.IRequest) (result interface{}) {
 	if c.HandleErrorNoResult(request, err) {
 		return
 	}
-	tempKey := fmt.Sprintf("%v", keyType)
-	accountInfoFace := request.GetTemp(tempKey)
-	if accountInfoFace == nil {
-		err = errors.GetUnAuthorizedError()
-		return
-	}
 	err = base.HandleLoginResponse(request, key, keyType)
 	if c.HandleErrorNoResult(request, err) {
 		return
@@ -60,10 +54,17 @@ func (c *changeController) Post(request gm.IRequest) (result interface{}) {
 		return
 	}
 	if oldPass != newPass {
-		err = CurrentConfig.Handler.ChangePass(request, newPass)
+		err = CurrentConfig.Handler.DoChangePass(request, newPass)
 		if c.HandleErrorNoResult(request, err) {
 			return
 		}
+	}
+	auth := request.GetAuth()
+	err = base.HandleLoginResponse(request,
+		fmt.Sprintf("%v", auth.GetCurrentAccountId()),
+		base.ID)
+	if c.HandleErrorNoResult(request, err) {
+		return
 	}
 	ctx := request.GetContext()
 	ctx.Status(204)

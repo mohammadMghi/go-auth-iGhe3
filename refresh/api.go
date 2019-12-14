@@ -25,7 +25,7 @@ func (c *refreshController) Post(request gm.IRequest) (result interface{}) {
 		return
 	}
 	token := fmt.Sprintf("%v", tokenFace)
-	refresh, err := GetToken(token)
+	refresh, err := GetAndDeleteToken(token)
 	if err != nil || refresh == nil {
 		err = errors.GetUnAuthorizedError()
 	}

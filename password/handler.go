@@ -6,6 +6,7 @@ import (
 	gm "github.com/go-ginger/models"
 	"github.com/go-ginger/models/errors"
 	"github.com/go-m/auth/base"
+	"github.com/go-m/auth/refresh"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -20,6 +21,7 @@ type IHandler interface {
 	VerifyPassById(request gm.IRequest, id interface{}, pass string) (err error)
 	Login(request gm.IRequest) (key string, keyType base.KeyType, err error)
 	ValidateChangePass(request gm.IRequest, oldPass string, newPass string) (err error)
+	DoChangePass(request gm.IRequest, newPass string) (err error)
 	ChangePass(request gm.IRequest, newPass string) (err error)
 }
 
@@ -131,6 +133,12 @@ func (h *DefaultHandler) ValidateChangePass(request gm.IRequest, oldPass string,
 	if err != nil {
 		return
 	}
+	return
+}
+
+func (h *DefaultHandler) DoChangePass(request gm.IRequest, newPass string) (err error) {
+	err = h.IHandler.ChangePass(request, newPass)
+	refresh.DeleteAllAccountTokens(request.GetAuth().GetCurrentAccountId())
 	return
 }
 

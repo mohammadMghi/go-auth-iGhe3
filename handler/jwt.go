@@ -27,8 +27,8 @@ func (a *JwtAuthorization) GetBase() gm.IAuthorization {
 type JwtLoginHandler struct {
 	base.ILoginHandler
 
-	SecretKey           []byte
-	SigningMethod       jwt.SigningMethod
+	SecretKey     []byte
+	SigningMethod jwt.SigningMethod
 }
 
 func (h *JwtLoginHandler) Initialize(handler base.ILoginHandler) {
@@ -74,15 +74,18 @@ func (h *JwtLoginHandler) HandleError(request gm.IRequest, err error) (handled b
 	return true
 }
 
-func (h *JwtLoginHandler) Login(request gm.IRequest, config *base.Config, key string, keyType base.KeyType) (result interface{},
-	headers map[string]string, cookies []*http.Cookie, err error) {
+func (h *JwtLoginHandler) Login(request gm.IRequest, config *base.Config, key string,
+	keyType base.KeyType) (result interface{}, headers map[string]string,
+	cookies []*http.Cookie, err error) {
 	info, err := h.ILoginHandler.GetInfo(request, key, keyType)
 	if err != nil {
 		return
 	}
 	var properties map[string]interface{}
+	var accountID interface{}
 	if info != nil {
 		properties = info.GetProperties()
+		accountID = info.GetAccountID()
 	}
 	claims := jwt.MapClaims(properties)
 	claims["nbf"] = time.Now().UTC().Unix()
@@ -93,7 +96,7 @@ func (h *JwtLoginHandler) Login(request gm.IRequest, config *base.Config, key st
 	if err != nil {
 		return
 	}
-	refreshToken, err := refresh.New(key, keyType, config.RefreshTokenExp)
+	refreshToken, err := refresh.New(accountID, key, keyType, config.RefreshTokenExp)
 	if err != nil {
 		return
 	}

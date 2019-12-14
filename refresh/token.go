@@ -11,29 +11,32 @@ import (
 )
 
 type Token struct {
-	Value   string
-	Exp     time.Duration
-	Key     string
-	KeyType base.KeyType
+	Value    string
+	Exp      time.Duration
+	Key      string
+	KeyType  base.KeyType
+	RedisKey string
 }
 
-func getKey(token string) (key string) {
-	return fmt.Sprintf("refresh:%s", token)
+func getKey(accountID interface{}, token string) (key string) {
+	return fmt.Sprintf("refresh:%v:%s", accountID, token)
 }
 
-func New(key string, keyType base.KeyType, exp time.Duration) (token *Token, err error) {
+func New(accountID interface{}, key string, keyType base.KeyType, exp time.Duration) (token *Token, err error) {
 	b := make([]byte, 32)
 	_, err = rand.Read(b)
 	if err != nil {
 		return
 	}
+	value := fmt.Sprintf("%x", b)
 	token = &Token{
-		Value:   fmt.Sprintf("%x", b),
-		Exp:     exp,
-		Key:     key,
-		KeyType: keyType,
+		RedisKey: getKey(accountID, value),
+		Value:    value,
+		Exp:      exp,
+		Key:      key,
+		KeyType:  keyType,
 	}
-	err = base.RedisHandler.Set(getKey(token.Value), token, exp)
+	err = base.RedisHandler.Set(token.RedisKey, token, exp)
 	return
 }
 
@@ -49,7 +52,15 @@ func GetToken(value string) (token *Token, err error) {
 			log.Println(fmt.Sprintf("error while closing redis, err: %v", err))
 		}
 	}()
-	val := client.Get(getKey(value)).Val()
+	key := getKey("*", value)
+	cmdVal := client.Do("KEYS", key).Val()
+	keys := cmdVal.([]interface{})
+	if err != nil || len(keys) == 0 {
+		err = errors.GetNotFoundError()
+		return
+	}
+	key = keys[0].(string)
+	val := client.Get(key).Val()
 	if val != "" {
 		token = new(Token)
 		err = json.Unmarshal([]byte(val), &token)
@@ -57,7 +68,14 @@ func GetToken(value string) (token *Token, err error) {
 			token = nil
 			return
 		}
-		deleted := deleteToken(token.Value)
+	}
+	return
+}
+
+func GetAndDeleteToken(value string) (token *Token, err error) {
+	token, err = GetToken(value)
+	if token != nil {
+		deleted := deleteTokenByKey(token.RedisKey)
 		if !deleted {
 			err = errors.GetInternalServiceError("could not delete old refresh token")
 			return
@@ -66,7 +84,7 @@ func GetToken(value string) (token *Token, err error) {
 	return
 }
 
-func deleteToken(value string) (deleted bool) {
+func deleteTokenByKey(key string) (deleted bool) {
 	client, err := base.RedisHandler.GetClient()
 	if err != nil {
 		return
@@ -78,7 +96,32 @@ func deleteToken(value string) (deleted bool) {
 			log.Println(fmt.Sprintf("error while closing redis, err: %v", err))
 		}
 	}()
-	count := client.Del(getKey(value)).Val()
+	count := client.Del(key).Val()
 	deleted = count > 0
+	return
+}
+
+func DeleteAllAccountTokens(accountID interface{}) {
+	client, err := base.RedisHandler.GetClient()
+	if err != nil {
+		return
+	}
+	defer func() {
+		e := client.Close()
+		if e != nil {
+			err = e
+			log.Println(fmt.Sprintf("error while closing redis, err: %v", err))
+		}
+	}()
+	key := getKey(accountID, "*")
+	cmdVal := client.Do("KEYS", key).Val()
+	keys := cmdVal.([]interface{})
+	if err != nil || len(keys) == 0 {
+		err = errors.GetNotFoundError()
+		return
+	}
+	for _, key := range keys {
+		deleteTokenByKey(key.(string))
+	}
 	return
 }

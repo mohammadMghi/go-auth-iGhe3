@@ -13,7 +13,7 @@ func middleware(request gm.IRequest) (result interface{}) {
 	if refreshToken == "" {
 		return
 	}
-	token, err := refresh.GetToken(refreshToken)
+	token, err := refresh.GetAndDeleteToken(refreshToken)
 	if err != nil || token == nil {
 		return
 	}

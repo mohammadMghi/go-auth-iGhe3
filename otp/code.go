@@ -29,21 +29,6 @@ func (otp *OTP) Save() (err error) {
 	if err != nil {
 		return
 	}
-
-	client, err := base.RedisHandler.GetClient()
-	if err != nil {
-		return
-	}
-	defer func() {
-		e := client.Close()
-		if e != nil {
-			err = e
-			log.Println(fmt.Sprintf("error while closing redis, err: %v", err))
-		}
-	}()
-	err = client.Set(otp.Key, otp,
-		time.Duration(math.Max(float64(CurrentConfig.CodeExpiration),
-			float64(CurrentConfig.ValidationExpiration)))).Err()
 	return
 }
 

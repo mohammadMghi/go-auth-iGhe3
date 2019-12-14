@@ -10,11 +10,13 @@ import (
 type ILoginInfo interface {
 	GetProperties() map[string]interface{}
 	GetExtraData() map[string]interface{}
+	GetAccountID() interface{}
 }
 type LoginInfo struct {
 	ILoginInfo
 	Properties map[string]interface{}
 	ExtraData  map[string]interface{}
+	AccountID  interface{}
 }
 
 func (l *LoginInfo) GetProperties() map[string]interface{} {
@@ -22,6 +24,9 @@ func (l *LoginInfo) GetProperties() map[string]interface{} {
 }
 func (l *LoginInfo) GetExtraData() map[string]interface{} {
 	return l.ExtraData
+}
+func (l *LoginInfo) GetAccountID() interface{} {
+	return l.AccountID
 }
 
 type ILoginHandler interface {
