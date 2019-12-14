@@ -20,6 +20,16 @@ type OTP struct {
 }
 
 func (otp *OTP) Save() (err error) {
+	err = base.RedisHandler.Set(otp.Key, otp,
+		time.Duration(math.Max(
+			float64(CurrentConfig.CodeExpiration),
+			float64(CurrentConfig.ValidationExpiration),
+		)),
+	)
+	if err != nil {
+		return
+	}
+
 	client, err := base.RedisHandler.GetClient()
 	if err != nil {
 		return
@@ -31,11 +41,7 @@ func (otp *OTP) Save() (err error) {
 			log.Println(fmt.Sprintf("error while closing redis, err: %v", err))
 		}
 	}()
-	serializedOtp, err := json.Marshal(otp)
-	if err != nil {
-		return
-	}
-	err = client.Set(otp.Key, serializedOtp,
+	err = client.Set(otp.Key, otp,
 		time.Duration(math.Max(float64(CurrentConfig.CodeExpiration),
 			float64(CurrentConfig.ValidationExpiration)))).Err()
 	return

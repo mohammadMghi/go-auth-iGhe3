@@ -14,6 +14,7 @@ type IHandler interface {
 	HashPassword(password string) (hash string, err error)
 	VerifyPassword(hash string, password string) (err error)
 	ValidateKey(key string) (err error)
+	NormalizeKey(key string) (normalized string)
 	ValidatePass(pass string) (err error)
 	VerifyPass(request gm.IRequest, key string, keyType base.KeyType, pass string) (err error)
 	VerifyPassById(request gm.IRequest, id interface{}, pass string) (err error)
@@ -44,6 +45,11 @@ func (h *DefaultHandler) VerifyPassword(hash string, password string) (err error
 	hashBytes := []byte(hash)
 	passwordBytes := []byte(password)
 	err = bcrypt.CompareHashAndPassword(hashBytes, passwordBytes)
+	return
+}
+
+func (h *DefaultHandler) NormalizeKey(key string) (normalized string) {
+	normalized = key
 	return
 }
 
@@ -81,6 +87,7 @@ func (h *DefaultHandler) Login(request gm.IRequest) (key string, keyType base.Ke
 		return
 	}
 	key = fmt.Sprintf("%v", keyFace)
+	key = h.IHandler.NormalizeKey(key)
 	err = h.IHandler.ValidateKey(key)
 	if err != nil {
 		return
@@ -90,7 +97,21 @@ func (h *DefaultHandler) Login(request gm.IRequest) (key string, keyType base.Ke
 	if err != nil {
 		return
 	}
+	err, retries := getRetries(keyType, key)
+	if err != nil {
+		return
+	}
+	err = retries.Validate()
+	if err != nil {
+		return
+	}
 	err = h.IHandler.VerifyPass(request, key, keyType, pass)
+	defer func() {
+		err = retries.TryMore()
+		if err != nil {
+			return
+		}
+	}()
 	if err != nil {
 		err = errors.GetUnAuthorizedError()
 		return
@@ -111,7 +132,6 @@ func (h *DefaultHandler) ValidateChangePass(request gm.IRequest, oldPass string,
 	}
 	return
 }
-
 
 func (h *DefaultHandler) ChangePass(request gm.IRequest, newPass string) (err error) {
 	// change password logic
