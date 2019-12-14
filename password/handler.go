@@ -107,8 +107,9 @@ func (h *DefaultHandler) Login(request gm.IRequest) (key string, keyType base.Ke
 	}
 	err = h.IHandler.VerifyPass(request, key, keyType, pass)
 	defer func() {
-		err = retries.TryMore()
-		if err != nil {
+		e := retries.TryMore()
+		if e != nil {
+			err = e
 			return
 		}
 	}()
