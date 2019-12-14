@@ -64,6 +64,7 @@ func (h *DefaultHandler) VerifyPassById(request gm.IRequest, id interface{}, pas
 }
 
 func (h *DefaultHandler) Login(request gm.IRequest) (key string, keyType base.KeyType, err error) {
+	keyType = base.Password
 	var body map[string]interface{}
 	err = g.BindJSON(request.GetContext(), &body)
 	if err != nil {
@@ -94,7 +95,6 @@ func (h *DefaultHandler) Login(request gm.IRequest) (key string, keyType base.Ke
 		err = errors.GetUnAuthorizedError()
 		return
 	}
-	keyType = base.Password
 	return
 }
 
