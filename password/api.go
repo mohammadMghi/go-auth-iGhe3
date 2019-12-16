@@ -35,7 +35,7 @@ func (c *changeController) Post(request gm.IRequest) (result interface{}) {
 	if c.HandleErrorNoResult(request, err) {
 		return
 	}
-	oldPassFace, ok := body["old"]
+	currentPassFace, ok := body["current"]
 	if !ok {
 		err := errors.GetValidationError("old password is required")
 		c.HandleErrorNoResult(request, err)
@@ -47,13 +47,13 @@ func (c *changeController) Post(request gm.IRequest) (result interface{}) {
 		c.HandleErrorNoResult(request, err)
 		return
 	}
-	oldPass := fmt.Sprintf("%v", oldPassFace)
+	currentPass := fmt.Sprintf("%v", currentPassFace)
 	newPass := fmt.Sprintf("%v", newPassFace)
-	err = CurrentConfig.Handler.ValidateChangePass(request, oldPass, newPass)
+	err = CurrentConfig.Handler.ValidateChangePass(request, currentPass, newPass)
 	if c.HandleErrorNoResult(request, err) {
 		return
 	}
-	if oldPass != newPass {
+	if currentPass != newPass {
 		err = CurrentConfig.Handler.DoChangePass(request, newPass)
 		if c.HandleErrorNoResult(request, err) {
 			return
