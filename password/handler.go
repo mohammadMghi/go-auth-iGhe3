@@ -85,7 +85,7 @@ func (h *DefaultHandler) Login(request gm.IRequest) (key string, keyType base.Ke
 	}
 	passFace, ok := body["pass"]
 	if !ok {
-		err = errors.GetUnAuthorizedError()
+		err = errors.GetValidationError()
 		return
 	}
 	key = fmt.Sprintf("%v", keyFace)
@@ -116,7 +116,7 @@ func (h *DefaultHandler) Login(request gm.IRequest) (key string, keyType base.Ke
 		}
 	}()
 	if err != nil {
-		err = errors.GetUnAuthorizedError()
+		err = errors.GetValidationError()
 		return
 	}
 	return

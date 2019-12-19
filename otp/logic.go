@@ -85,7 +85,7 @@ func (l *otpLogic) VerifyOTP(request gm.IRequest) (key string, keyType base.KeyT
 	}
 	codeFace, ok := body["code"]
 	if !ok {
-		err = errors.GetUnAuthorizedError()
+		err = errors.GetValidationError()
 		return
 	}
 	mobile := fmt.Sprintf("%v", mobileFace)
@@ -100,7 +100,7 @@ func (l *otpLogic) VerifyOTP(request gm.IRequest) (key string, keyType base.KeyT
 		return
 	}
 	if otp == nil {
-		err = errors.GetUnAuthorizedError()
+		err = errors.GetValidationError()
 		return
 	}
 	err = otp.Verify(code)

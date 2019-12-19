@@ -34,7 +34,7 @@ func (otp *OTP) Save() (err error) {
 
 func (otp *OTP) Verify(code string) (err error) {
 	if code == "" {
-		err = errors.GetUnAuthorizedError()
+		err = errors.GetValidationError()
 		return
 	}
 	client, err := base.RedisHandler.GetClient()
@@ -76,7 +76,7 @@ func (otp *OTP) Verify(code string) (err error) {
 	maxRequestValidTime := lastCodeRequestTime.Add(CurrentConfig.CodeExpiration)
 	if code != otp.Code || otp.VerifyRetriesRemainingCount <= 0 ||
 		time.Now().UTC().After(maxRequestValidTime) {
-		err = errors.GetUnAuthorizedError()
+		err = errors.GetValidationError()
 		return
 	}
 	if CurrentConfig.ValidateOtp != nil {
