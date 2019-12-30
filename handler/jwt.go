@@ -20,6 +20,11 @@ type JwtAuthorization struct {
 	Claims      jwt.MapClaims
 }
 
+func (a *JwtAuthorization) GetCurrentAccountId() (id interface{}) {
+	id, _ = a.Claims["id"]
+	return
+}
+
 func (a *JwtAuthorization) GetBase() gm.IAuthorization {
 	return a
 }
@@ -178,6 +183,14 @@ func (h *JwtLoginHandler) Authenticate(request gm.IRequest) (err error) {
 	authorization.IsAuthenticated = parsed.Valid &&
 		authorization.Claims.VerifyExpiresAt(unixNow, true) &&
 		authorization.Claims.VerifyNotBefore(unixNow, true)
+	rolesFace, exists := authorization.Claims["roles"]
+	if exists {
+		roles := make([]string, 0)
+		for _, roleFace := range rolesFace.([]interface{}) {
+			roles = append(roles, roleFace.(string))
+		}
+		authorization.Roles = roles
+	}
 	return
 }
 
