@@ -20,7 +20,7 @@ type JwtAuthorization struct {
 	Claims      jwt.MapClaims
 }
 
-func (a *JwtAuthorization) GetCurrentAccountId() (id interface{}) {
+func (a *JwtAuthorization) GetCurrentAccountId(request gm.IRequest) (id interface{}) {
 	id, _ = a.Claims["id"]
 	return
 }

@@ -134,7 +134,7 @@ func (h *DefaultHandler) ValidateChangePass(request gm.IRequest, oldPass string,
 		return
 	}
 	auth := request.GetAuth()
-	accID := auth.GetCurrentAccountId()
+	accID := auth.GetCurrentAccountId(request)
 	err = h.IHandler.VerifyPassById(request, accID, oldPass)
 	if err != nil {
 		return
@@ -144,7 +144,7 @@ func (h *DefaultHandler) ValidateChangePass(request gm.IRequest, oldPass string,
 
 func (h *DefaultHandler) DoChangePass(request gm.IRequest, newPass string) (err error) {
 	err = h.IHandler.ChangePass(request, newPass)
-	refresh.DeleteAllAccountTokens(request, request.GetAuth().GetCurrentAccountId())
+	refresh.DeleteAllAccountTokens(request, request.GetAuth().GetCurrentAccountId(request))
 	return
 }
 

@@ -72,7 +72,7 @@ func (c *changeController) Post(request gm.IRequest) (result interface{}) {
 	}
 	auth := request.GetAuth()
 	err = base.HandleLoginResponse(request,
-		fmt.Sprintf("%v", auth.GetCurrentAccountId()),
+		fmt.Sprintf("%v", auth.GetCurrentAccountId(request)),
 		base.ID)
 	if c.HandleErrorNoResult(request, err) {
 		return
