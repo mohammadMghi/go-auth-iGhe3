@@ -13,11 +13,11 @@ import (
 
 type IHandler interface {
 	Initialize(handler IHandler)
-	HashPassword(password string) (hash string, err error)
-	VerifyPassword(hash string, password string) (err error)
-	ValidateKey(key string) (err error)
-	NormalizeKey(key string) (normalized string)
-	ValidatePass(pass string) (err error)
+	HashPassword(request gm.IRequest, password string) (hash string, err error)
+	VerifyPassword(request gm.IRequest, hash string, password string) (err error)
+	ValidateKey(request gm.IRequest, key string) (err error)
+	NormalizeKey(request gm.IRequest, key string) (normalized string)
+	ValidatePass(request gm.IRequest, pass string) (err error)
 	VerifyPass(request gm.IRequest, key string, keyType base.KeyType, pass string) (err error)
 	VerifyPassById(request gm.IRequest, id interface{}, pass string) (err error)
 	Login(request gm.IRequest) (key string, keyType base.KeyType, err error)
@@ -34,7 +34,7 @@ func (h *DefaultHandler) Initialize(handler IHandler) {
 	h.IHandler = handler
 }
 
-func (h *DefaultHandler) HashPassword(password string) (hash string, err error) {
+func (h *DefaultHandler) HashPassword(request gm.IRequest, password string) (hash string, err error) {
 	passwordBytes := []byte(password)
 	hashBytes, err := bcrypt.GenerateFromPassword(passwordBytes, bcrypt.DefaultCost)
 	if err != nil {
@@ -44,23 +44,23 @@ func (h *DefaultHandler) HashPassword(password string) (hash string, err error) 
 	return
 }
 
-func (h *DefaultHandler) VerifyPassword(hash string, password string) (err error) {
+func (h *DefaultHandler) VerifyPassword(request gm.IRequest, hash string, password string) (err error) {
 	hashBytes := []byte(hash)
 	passwordBytes := []byte(password)
 	err = bcrypt.CompareHashAndPassword(hashBytes, passwordBytes)
 	return
 }
 
-func (h *DefaultHandler) NormalizeKey(key string) (normalized string) {
+func (h *DefaultHandler) NormalizeKey(request gm.IRequest, key string) (normalized string) {
 	normalized = key
 	return
 }
 
-func (h *DefaultHandler) ValidateKey(key string) (err error) {
+func (h *DefaultHandler) ValidateKey(request gm.IRequest, key string) (err error) {
 	return
 }
 
-func (h *DefaultHandler) ValidatePass(pass string) (err error) {
+func (h *DefaultHandler) ValidatePass(request gm.IRequest, pass string) (err error) {
 	return
 }
 
@@ -95,13 +95,13 @@ func (h *DefaultHandler) Login(request gm.IRequest) (key string, keyType base.Ke
 		return
 	}
 	key = fmt.Sprintf("%v", keyFace)
-	key = h.IHandler.NormalizeKey(key)
-	err = h.IHandler.ValidateKey(key)
+	key = h.IHandler.NormalizeKey(request, key)
+	err = h.IHandler.ValidateKey(request, key)
 	if err != nil {
 		return
 	}
 	pass := fmt.Sprintf("%v", passFace)
-	err = h.IHandler.ValidatePass(pass)
+	err = h.IHandler.ValidatePass(request, pass)
 	if err != nil {
 		return
 	}
@@ -129,7 +129,7 @@ func (h *DefaultHandler) Login(request gm.IRequest) (key string, keyType base.Ke
 }
 
 func (h *DefaultHandler) ValidateChangePass(request gm.IRequest, oldPass string, newPass string) (err error) {
-	err = h.IHandler.ValidatePass(newPass)
+	err = h.IHandler.ValidatePass(request, newPass)
 	if err != nil {
 		return
 	}
