@@ -7,6 +7,7 @@ import (
 	gm "github.com/go-ginger/models"
 	"github.com/go-ginger/models/errors"
 	"github.com/go-m/auth/base"
+	"github.com/nicksnyder/go-i18n/v2/i18n"
 	"log"
 	"strings"
 )
@@ -29,10 +30,15 @@ func (l *otpLogic) normalizeMobile(mobile string) (normalized string) {
 	return
 }
 
-func (l *otpLogic) validateMobile(mobile string) (err error) {
+func (l *otpLogic) validateMobile(request gm.IRequest, mobile string) (err error) {
 	if CurrentConfig.MobileValidationRegex != nil {
 		if !CurrentConfig.MobileValidationRegex.MatchString(mobile) {
-			err = errors.GetValidationError("Invalid mobile number")
+			err = errors.GetValidationError(request, request.MustLocalize(&i18n.LocalizeConfig{
+				DefaultMessage: &i18n.Message{
+					ID:    "InvalidMobileNumber",
+					Other: "Invalid mobile number",
+				},
+			}))
 			return
 		}
 	}
@@ -53,16 +59,21 @@ func (l *otpLogic) RequestOTP(request gm.IRequest) (err error) {
 	}
 	mobileFace, ok := body["mobile"]
 	if !ok {
-		err = errors.GetValidationError("mobile phone required")
+		err = errors.GetValidationError(request, request.MustLocalize(&i18n.LocalizeConfig{
+			DefaultMessage: &i18n.Message{
+				ID:    "MobileNumberRequired",
+				Other: "mobile phone required",
+			},
+		}))
 		return
 	}
 	mobile := fmt.Sprintf("%v", mobileFace)
 	mobile = l.normalizeMobile(mobile)
-	err = l.validateMobile(mobile)
+	err = l.validateMobile(request, mobile)
 	if err != nil {
 		return
 	}
-	otp, err := generateNewOTP(mobile)
+	otp, err := generateNewOTP(request, mobile)
 	if err != nil {
 		log.Println(fmt.Sprintf("error on generateNewOTP, err: %v", err))
 	}
@@ -80,17 +91,22 @@ func (l *otpLogic) VerifyOTP(request gm.IRequest) (key string, keyType base.KeyT
 	}
 	mobileFace, ok := body["mobile"]
 	if !ok {
-		err = errors.GetValidationError("mobile phone required")
+		err = errors.GetValidationError(request, request.MustLocalize(&i18n.LocalizeConfig{
+			DefaultMessage: &i18n.Message{
+				ID:    "MobileNumberRequired",
+				Other: "mobile phone required",
+			},
+		}))
 		return
 	}
 	codeFace, ok := body["code"]
 	if !ok {
-		err = errors.GetValidationError()
+		err = errors.GetValidationError(request)
 		return
 	}
 	mobile := fmt.Sprintf("%v", mobileFace)
 	mobile = l.normalizeMobile(mobile)
-	err = l.validateMobile(mobile)
+	err = l.validateMobile(request, mobile)
 	if err != nil {
 		return
 	}
@@ -100,10 +116,10 @@ func (l *otpLogic) VerifyOTP(request gm.IRequest) (key string, keyType base.KeyT
 		return
 	}
 	if otp == nil {
-		err = errors.GetValidationError()
+		err = errors.GetValidationError(request)
 		return
 	}
-	err = otp.Verify(code)
+	err = otp.Verify(request, code)
 	if err != nil {
 		return
 	}

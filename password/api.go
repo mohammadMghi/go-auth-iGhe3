@@ -7,6 +7,7 @@ import (
 	gm "github.com/go-ginger/models"
 	"github.com/go-ginger/models/errors"
 	"github.com/go-m/auth/base"
+	"github.com/nicksnyder/go-i18n/v2/i18n"
 )
 
 type loginController struct {
@@ -37,13 +38,23 @@ func (c *changeController) Post(request gm.IRequest) (result interface{}) {
 	}
 	currentPassFace, ok := body["current"]
 	if !ok {
-		err := errors.GetValidationError("old password is required")
+		err := errors.GetValidationError(request, request.MustLocalize(&i18n.LocalizeConfig{
+			DefaultMessage: &i18n.Message{
+				ID:    "OldPasswordRequired",
+				Other: "old password is required",
+			},
+		}))
 		c.HandleErrorNoResult(request, err)
 		return
 	}
 	newPassFace, ok := body["new"]
 	if !ok {
-		err := errors.GetValidationError("new password is required")
+		err := errors.GetValidationError(request, request.MustLocalize(&i18n.LocalizeConfig{
+			DefaultMessage: &i18n.Message{
+				ID:    "NewPasswordRequired",
+				Other: "new password is required",
+			},
+		}))
 		c.HandleErrorNoResult(request, err)
 		return
 	}

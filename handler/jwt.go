@@ -70,7 +70,7 @@ func (h *JwtLoginHandler) HandleError(request gm.IRequest, err error) (handled b
 	}
 	e, ok := err.(errors.Error)
 	if !ok {
-		err = errors.GetUnAuthorizedError()
+		err = errors.GetUnAuthorizedError(request)
 		e = err.(errors.Error)
 	}
 	req := request.GetBaseRequest()
@@ -159,7 +159,7 @@ func (h *JwtLoginHandler) Authenticate(request gm.IRequest) (err error) {
 			}
 		}
 		if tokenStr == "" {
-			err = errors.GetUnAuthorizedError()
+			err = errors.GetUnAuthorizedError(request)
 			return
 		}
 		splitToken := strings.Split(tokenStr, "bearer")
@@ -206,7 +206,7 @@ func (h *JwtLoginHandler) MustAuthenticate() g.HandlerFunc {
 		}
 		auth := request.GetAuth()
 		if !auth.Authenticated() {
-			err = errors.GetUnAuthorizedError()
+			err = errors.GetUnAuthorizedError(request)
 			return
 		}
 		return
@@ -227,7 +227,7 @@ func (h *JwtLoginHandler) MustHaveRole(roles ...string) g.HandlerFunc {
 		}
 		auth := request.GetAuth().GetBase().(*JwtAuthorization)
 		if !auth.IsAuthenticated {
-			err = errors.GetUnAuthorizedError()
+			err = errors.GetUnAuthorizedError(request)
 			return
 		}
 		hasRole := func() bool {
@@ -252,7 +252,7 @@ func (h *JwtLoginHandler) MustHaveRole(roles ...string) g.HandlerFunc {
 			return false
 		}()
 		if !hasRole {
-			err = errors.GetForbiddenError()
+			err = errors.GetForbiddenError(request)
 			return
 		}
 		return

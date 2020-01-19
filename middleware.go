@@ -11,7 +11,7 @@ func (h *Handler) middleware(request gm.IRequest) (result interface{}) {
 	ctx := req.GetContext()
 	refreshToken := ctx.GetHeader(base.CurrentConfig.RefreshTokenHeaderKey)
 	if refreshToken != "" {
-		token, err := refresh.GetAndDeleteToken(refreshToken)
+		token, err := refresh.GetAndDeleteToken(request, refreshToken)
 		if err != nil {
 			return
 		}

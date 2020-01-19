@@ -46,7 +46,7 @@ func HandleLoginResponse(request gm.IRequest, key string, keyType KeyType, preve
 		return
 	}
 	if result == nil {
-		err = errors.GetUnAuthorizedError()
+		err = errors.GetUnAuthorizedError(request)
 		return
 	}
 	err = CurrentConfig.LoginHandler.Authenticate(request)

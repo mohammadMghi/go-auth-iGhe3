@@ -3,8 +3,10 @@ package refresh
 import (
 	"encoding/json"
 	"fmt"
+	gm "github.com/go-ginger/models"
 	"github.com/go-ginger/models/errors"
 	"github.com/go-m/auth/base"
+	"github.com/nicksnyder/go-i18n/v2/i18n"
 	"log"
 	"math/rand"
 	"time"
@@ -40,7 +42,7 @@ func New(accountID interface{}, key string, keyType base.KeyType, exp time.Durat
 	return
 }
 
-func GetToken(value string) (token *Token, err error) {
+func GetToken(request gm.IRequest, value string) (token *Token, err error) {
 	client, err := base.RedisHandler.GetClient()
 	if err != nil {
 		return
@@ -56,7 +58,7 @@ func GetToken(value string) (token *Token, err error) {
 	cmdVal := client.Do("KEYS", key).Val()
 	keys := cmdVal.([]interface{})
 	if err != nil || len(keys) == 0 {
-		err = errors.GetNotFoundError()
+		err = errors.GetNotFoundError(request)
 		return
 	}
 	key = keys[0].(string)
@@ -72,12 +74,17 @@ func GetToken(value string) (token *Token, err error) {
 	return
 }
 
-func GetAndDeleteToken(value string) (token *Token, err error) {
-	token, err = GetToken(value)
+func GetAndDeleteToken(request gm.IRequest, value string) (token *Token, err error) {
+	token, err = GetToken(request, value)
 	if token != nil {
 		deleted := deleteTokenByKey(token.RedisKey)
 		if !deleted {
-			err = errors.GetInternalServiceError("could not delete old refresh token")
+			err = errors.GetInternalServiceError(request, request.MustLocalize(&i18n.LocalizeConfig{
+				DefaultMessage: &i18n.Message{
+					ID:    "CouldNotDeleteOldRefreshToken",
+					Other: "could not delete old refresh token",
+				},
+			}))
 			return
 		}
 	}
@@ -101,7 +108,7 @@ func deleteTokenByKey(key string) (deleted bool) {
 	return
 }
 
-func DeleteAllAccountTokens(accountID interface{}) {
+func DeleteAllAccountTokens(request gm.IRequest, accountID interface{}) {
 	client, err := base.RedisHandler.GetClient()
 	if err != nil {
 		return
@@ -117,7 +124,7 @@ func DeleteAllAccountTokens(accountID interface{}) {
 	cmdVal := client.Do("KEYS", key).Val()
 	keys := cmdVal.([]interface{})
 	if err != nil || len(keys) == 0 {
-		err = errors.GetNotFoundError()
+		err = errors.GetNotFoundError(request)
 		return
 	}
 	for _, key := range keys {

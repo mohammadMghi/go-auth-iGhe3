@@ -7,6 +7,7 @@ import (
 	"github.com/go-ginger/models/errors"
 	"github.com/go-m/auth/base"
 	"github.com/go-m/auth/refresh"
+	"github.com/nicksnyder/go-i18n/v2/i18n"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -80,12 +81,17 @@ func (h *DefaultHandler) Login(request gm.IRequest) (key string, keyType base.Ke
 	}
 	keyFace, ok := body["key"]
 	if !ok {
-		err = errors.GetValidationError("key required")
+		err = errors.GetValidationError(request, request.MustLocalize(&i18n.LocalizeConfig{
+			DefaultMessage: &i18n.Message{
+				ID:    "KeyRequired",
+				Other: "key required",
+			},
+		}))
 		return
 	}
 	passFace, ok := body["pass"]
 	if !ok {
-		err = errors.GetValidationError()
+		err = errors.GetValidationError(request)
 		return
 	}
 	key = fmt.Sprintf("%v", keyFace)
@@ -103,20 +109,20 @@ func (h *DefaultHandler) Login(request gm.IRequest) (key string, keyType base.Ke
 	if err != nil {
 		return
 	}
-	err = retries.Validate()
+	err = retries.Validate(request)
 	if err != nil {
 		return
 	}
 	err = h.IHandler.VerifyPass(request, key, keyType, pass)
 	defer func() {
-		e := retries.TryMore()
+		e := retries.TryMore(request)
 		if e != nil {
 			err = e
 			return
 		}
 	}()
 	if err != nil {
-		err = errors.GetValidationError()
+		err = errors.GetValidationError(request)
 		return
 	}
 	return
@@ -138,7 +144,7 @@ func (h *DefaultHandler) ValidateChangePass(request gm.IRequest, oldPass string,
 
 func (h *DefaultHandler) DoChangePass(request gm.IRequest, newPass string) (err error) {
 	err = h.IHandler.ChangePass(request, newPass)
-	refresh.DeleteAllAccountTokens(request.GetAuth().GetCurrentAccountId())
+	refresh.DeleteAllAccountTokens(request, request.GetAuth().GetCurrentAccountId())
 	return
 }
 

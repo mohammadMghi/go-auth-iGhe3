@@ -2,8 +2,10 @@ package password
 
 import (
 	"fmt"
+	gm "github.com/go-ginger/models"
 	"github.com/go-ginger/models/errors"
 	"github.com/go-m/auth/base"
+	"github.com/nicksnyder/go-i18n/v2/i18n"
 	"log"
 )
 
@@ -44,16 +46,21 @@ func (r *retries) Save() (err error) {
 	return
 }
 
-func (r *retries) Validate() (err error) {
+func (r *retries) Validate(request gm.IRequest) (err error) {
 	if r.RetriesRemainingCount <= 0 {
-		err = errors.GetValidationError("Maximum retries limit exceeded. try again later")
+		err = errors.GetValidationError(request, request.MustLocalize(&i18n.LocalizeConfig{
+			DefaultMessage: &i18n.Message{
+				ID:    "MaximumOtpRetriesExceeded",
+				Other: "Maximum retries limit exceeded. try again later",
+			},
+		}))
 		return
 	}
 	return
 }
 
-func (r *retries) TryMore() (err error) {
-	err = r.Validate()
+func (r *retries) TryMore(request gm.IRequest) (err error) {
+	err = r.Validate(request)
 	if err != nil {
 		return
 	}

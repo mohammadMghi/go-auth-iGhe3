@@ -7,6 +7,7 @@ import (
 	gm "github.com/go-ginger/models"
 	"github.com/go-ginger/models/errors"
 	"github.com/go-m/auth/base"
+	"github.com/nicksnyder/go-i18n/v2/i18n"
 )
 
 type refreshController struct {
@@ -21,13 +22,18 @@ func (c *refreshController) Post(request gm.IRequest) (result interface{}) {
 	}
 	tokenFace, ok := body["token"]
 	if !ok {
-		err = errors.GetValidationError("token required to refresh authentication")
+		err = errors.GetValidationError(request, request.MustLocalize(&i18n.LocalizeConfig{
+			DefaultMessage: &i18n.Message{
+				ID:    "RefreshTokenRequired",
+				Other: "token required to refresh authentication",
+			},
+		}))
 		return
 	}
 	token := fmt.Sprintf("%v", tokenFace)
-	refresh, err := GetAndDeleteToken(token)
+	refresh, err := GetAndDeleteToken(request, token)
 	if err != nil || refresh == nil {
-		err = errors.GetUnAuthorizedError()
+		err = errors.GetUnAuthorizedError(request)
 	}
 	if c.HandleError(request, refresh, err) {
 		return

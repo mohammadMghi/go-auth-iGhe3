@@ -3,8 +3,10 @@ package otp
 import (
 	"encoding/json"
 	"fmt"
+	gm "github.com/go-ginger/models"
 	"github.com/go-ginger/models/errors"
 	"github.com/go-m/auth/base"
+	"github.com/nicksnyder/go-i18n/v2/i18n"
 	"log"
 	"math"
 	"math/rand"
@@ -32,9 +34,9 @@ func (otp *OTP) Save() (err error) {
 	return
 }
 
-func (otp *OTP) Verify(code string) (err error) {
+func (otp *OTP) Verify(request gm.IRequest, code string) (err error) {
 	if code == "" {
-		err = errors.GetValidationError()
+		err = errors.GetValidationError(request)
 		return
 	}
 	client, err := base.RedisHandler.GetClient()
@@ -76,7 +78,7 @@ func (otp *OTP) Verify(code string) (err error) {
 	maxRequestValidTime := lastCodeRequestTime.Add(CurrentConfig.CodeExpiration)
 	if code != otp.Code || otp.VerifyRetriesRemainingCount <= 0 ||
 		time.Now().UTC().After(maxRequestValidTime) {
-		err = errors.GetValidationError()
+		err = errors.GetValidationError(request)
 		return
 	}
 	if CurrentConfig.ValidateOtp != nil {
@@ -94,7 +96,7 @@ func getKey(mobile string) (key string) {
 	return fmt.Sprintf("otp:%s", mobile)
 }
 
-func generateNewOTP(mobile string) (otp *OTP, err error) {
+func generateNewOTP(request gm.IRequest, mobile string) (otp *OTP, err error) {
 	client, err := base.RedisHandler.GetClient()
 	if err != nil {
 		return
@@ -116,7 +118,12 @@ func generateNewOTP(mobile string) (otp *OTP, err error) {
 		}
 	}
 	if maxRequestRetries <= 0 {
-		err = errors.GetValidationError("Maximum retries limit exceeded. try again later")
+		err = errors.GetValidationError(request, request.MustLocalize(&i18n.LocalizeConfig{
+			DefaultMessage: &i18n.Message{
+				ID:    "MaximumOtpRetriesExceeded",
+				Other: "Maximum retries limit exceeded. try again later",
+			},
+		}))
 		return
 	}
 	otp = &OTP{
