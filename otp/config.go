@@ -13,6 +13,7 @@ type Config struct {
 	MaxRequestRetries                 int
 	MaxVerifyRetries                  int
 	ValidationExpiration              time.Duration
+	RequestRetryLimitDuration         time.Duration
 	ResetMaxVerifyRetriesOnNewRequest bool
 	MobileValidationRegexPattern      *string
 	ValidateMobile                    func(mobile string) error

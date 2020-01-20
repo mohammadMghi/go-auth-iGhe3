@@ -10,6 +10,7 @@ import (
 	"log"
 	"math"
 	"math/rand"
+	"strconv"
 	"time"
 )
 
@@ -115,6 +116,29 @@ func generateNewOTP(request gm.IRequest, mobile string) (otp *OTP, err error) {
 		maxRequestRetries = existingOTP.RequestRetriesRemainingCount
 		if !CurrentConfig.ResetMaxVerifyRetriesOnNewRequest {
 			maxVerifyRetries = existingOTP.VerifyRetriesRemainingCount
+		}
+		lastCodeRequestTime, e := time.Parse(time.RFC3339, existingOTP.LastCodeRequestTime)
+		if e != nil {
+			err = e
+			return
+		}
+		now := time.Now().UTC()
+		diff := lastCodeRequestTime.Add(CurrentConfig.RequestRetryLimitDuration).Sub(now)
+		if diff > 0 {
+			minutes := int(diff.Minutes())
+			err = errors.GetValidationError(request, request.MustLocalize(&i18n.LocalizeConfig{
+				DefaultMessage: &i18n.Message{
+					ID:    "RetryOtpRequestAfter",
+					One:   "You can retry request after {{.Seconds}} seconds",
+					Other: "You can retry request after {{.Minutes}} minutes and {{.Seconds}} seconds",
+				},
+				TemplateData: map[string]string{
+					"Minutes": strconv.Itoa(minutes),
+					"Seconds": strconv.Itoa(int(diff.Seconds() + 1)),
+				},
+				PluralCount: minutes + 1,
+			}))
+			return
 		}
 	}
 	if maxRequestRetries <= 0 {
