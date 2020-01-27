@@ -68,10 +68,10 @@ func (h *JwtLoginHandler) HandleError(request gm.IRequest, err error) (handled b
 	if err == nil {
 		return false
 	}
-	e, ok := err.(errors.Error)
+	e, ok := err.(*errors.Error)
 	if !ok {
 		err = errors.GetUnAuthorizedError(request)
-		e = err.(errors.Error)
+		e = err.(*errors.Error)
 	}
 	req := request.GetBaseRequest()
 	req.Context.JSON(e.Status, e)
