@@ -11,7 +11,11 @@ type requestOtpController struct {
 }
 
 func (c *requestOtpController) Post(request gm.IRequest) (result interface{}) {
-	err := LogicHandler.RequestOTP(request)
+	otp, err := CurrentConfig.LogicHandler.RequestOTP(request)
+	if c.HandleErrorNoResult(request, err) {
+		return
+	}
+	err = CurrentConfig.LogicHandler.AfterRequestOTP(request, otp)
 	if c.HandleErrorNoResult(request, err) {
 		return
 	}
@@ -24,7 +28,7 @@ type verifyOtpController struct {
 }
 
 func (c *verifyOtpController) Post(request gm.IRequest) (result interface{}) {
-	key, keyType, err := LogicHandler.VerifyOTP(request)
+	key, keyType, err := CurrentConfig.LogicHandler.VerifyOTP(request)
 	if c.HandleErrorNoResult(request, err) {
 		return
 	}

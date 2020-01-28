@@ -14,12 +14,23 @@ import (
 	"time"
 )
 
+type IOtp interface {
+	GenerateCode(otp *OTP)
+	Save() (err error)
+	Verify(request gm.IRequest, code string) (err error)
+}
+
 type OTP struct {
 	Code                         string
 	Key                          string
+	KeySource                    interface{}
 	RequestRetriesRemainingCount int
 	VerifyRetriesRemainingCount  int
 	LastCodeRequestTime          string
+}
+
+func getKey(mobile string) (key string) {
+	return fmt.Sprintf("otp:%s", mobile)
 }
 
 func (otp *OTP) Save() (err error) {
@@ -93,8 +104,12 @@ func (otp *OTP) Verify(request gm.IRequest, code string) (err error) {
 	return
 }
 
-func getKey(mobile string) (key string) {
-	return fmt.Sprintf("otp:%s", mobile)
+func (otp *OTP) GenerateCode() {
+	otp.Code = fmt.Sprintf("%v", rand.Intn(10000)+1000)
+	if base.CurrentConfig.Debug {
+		otp.Code = "1111"
+	}
+	return
 }
 
 func generateNewOTP(request gm.IRequest, mobile string) (otp *OTP, err error) {
@@ -151,15 +166,13 @@ func generateNewOTP(request gm.IRequest, mobile string) (otp *OTP, err error) {
 		return
 	}
 	otp = &OTP{
-		Code:                         fmt.Sprintf("%v", rand.Intn(10000)+1000),
+		KeySource:                    mobile,
 		Key:                          getKey(mobile),
 		RequestRetriesRemainingCount: maxRequestRetries - 1,
 		VerifyRetriesRemainingCount:  maxVerifyRetries,
 		LastCodeRequestTime:          time.Now().UTC().Format(time.RFC3339),
 	}
-	if base.CurrentConfig.Debug {
-		otp.Code = "1111"
-	}
+	otp.GenerateCode()
 	err = otp.Save()
 	return
 }

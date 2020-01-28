@@ -2,6 +2,7 @@ package otp
 
 import (
 	g "github.com/go-ginger/ginger"
+	gl "github.com/go-ginger/logic"
 	"time"
 )
 
@@ -17,10 +18,18 @@ func Initialize(router *g.RouterGroup, config *Config) {
 	if config.RequestRetryLimitDuration == 0 {
 		config.RequestRetryLimitDuration = time.Minute
 	}
+	if config.LogicHandler == nil {
+		logicHandler := BaseLogicHandler{
+			IBaseLogicHandler: &gl.BaseLogicHandler{},
+		}
+		config.LogicHandler = &logicHandler
+	}
+	config.LogicHandler.Init(config.LogicHandler)
 	CurrentConfig = config
-
-	request.Init(request, &LogicHandler, nil)
-	verify.Init(verify, &LogicHandler, nil)
+	gingerLogicHandler := config.LogicHandler.GetGingerLogicHandler()
+	gingerLogicHandler.Init(gingerLogicHandler, nil)
+	request.Init(request, gingerLogicHandler, nil)
+	verify.Init(verify, gingerLogicHandler, nil)
 
 	RegisterRoutes(router)
 }

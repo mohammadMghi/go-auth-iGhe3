@@ -8,6 +8,7 @@ import (
 
 type Config struct {
 	LoginHandler base.ILoginHandler
+	LogicHandler IOtpLogicHandler
 
 	CodeExpiration                    time.Duration
 	MaxRequestRetries                 int

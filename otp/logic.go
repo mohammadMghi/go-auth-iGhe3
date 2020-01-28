@@ -12,17 +12,29 @@ import (
 	"strings"
 )
 
-type otpLogic struct {
+type IOtpLogicHandler interface {
+	Init(logicHandler IOtpLogicHandler)
+	GetGingerLogicHandler() (handler gl.IBaseLogicHandler)
+	GenerateNewOTP(request gm.IRequest, mobile string) (otp *OTP, err error)
+	RequestOTP(request gm.IRequest) (otp *OTP, err error)
+	AfterRequestOTP(request gm.IRequest, otp *OTP) (err error)
+	VerifyOTP(request gm.IRequest) (key string, keyType base.KeyType, err error)
+}
+
+type BaseLogicHandler struct {
+	IOtpLogicHandler
 	gl.IBaseLogicHandler
 }
 
-var LogicHandler otpLogic
-
-func init() {
-	LogicHandler = otpLogic{IBaseLogicHandler: &gl.BaseLogicHandler{}}
+func (l *BaseLogicHandler) Init(logicHandler IOtpLogicHandler) {
+	l.IOtpLogicHandler = logicHandler
 }
 
-func (l *otpLogic) normalizeMobile(mobile string) (normalized string) {
+func (l *BaseLogicHandler) GetGingerLogicHandler() (handler gl.IBaseLogicHandler) {
+	return l.IBaseLogicHandler
+}
+
+func (l *BaseLogicHandler) normalizeMobile(mobile string) (normalized string) {
 	normalized = mobile
 	for strings.Contains(normalized, ")0") {
 		normalized = strings.Replace(normalized, ")0", ")", -1)
@@ -30,7 +42,7 @@ func (l *otpLogic) normalizeMobile(mobile string) (normalized string) {
 	return
 }
 
-func (l *otpLogic) validateMobile(request gm.IRequest, mobile string) (err error) {
+func (l *BaseLogicHandler) validateMobile(request gm.IRequest, mobile string) (err error) {
 	if CurrentConfig.MobileValidationRegex != nil {
 		if !CurrentConfig.MobileValidationRegex.MatchString(mobile) {
 			err = errors.GetValidationError(request, request.MustLocalize(&i18n.LocalizeConfig{
@@ -51,7 +63,15 @@ func (l *otpLogic) validateMobile(request gm.IRequest, mobile string) (err error
 	return
 }
 
-func (l *otpLogic) RequestOTP(request gm.IRequest) (err error) {
+func (l *BaseLogicHandler) GenerateNewOTP(request gm.IRequest, mobile string) (otp *OTP, err error) {
+	otp, err = generateNewOTP(request, mobile)
+	if err != nil {
+		log.Println(fmt.Sprintf("error on generateNewOTP, err: %v", err))
+	}
+	return
+}
+
+func (l *BaseLogicHandler) RequestOTP(request gm.IRequest) (otp *OTP, err error) {
 	var body map[string]interface{}
 	err = g.BindJSON(request.GetContext(), &body)
 	if err != nil {
@@ -73,9 +93,9 @@ func (l *otpLogic) RequestOTP(request gm.IRequest) (err error) {
 	if err != nil {
 		return
 	}
-	otp, err := generateNewOTP(request, mobile)
+	otp, err = l.IOtpLogicHandler.GenerateNewOTP(request, mobile)
 	if err != nil {
-		log.Println(fmt.Sprintf("error on generateNewOTP, err: %v", err))
+		return
 	}
 	if otp != nil {
 		log.Println(fmt.Sprintf("OTP for mobile: `%s` is `%s`", mobile, otp.Code))
@@ -83,7 +103,11 @@ func (l *otpLogic) RequestOTP(request gm.IRequest) (err error) {
 	return
 }
 
-func (l *otpLogic) VerifyOTP(request gm.IRequest) (key string, keyType base.KeyType, err error) {
+func (l *BaseLogicHandler) AfterRequestOTP(request gm.IRequest, otp *OTP) (err error) {
+	return
+}
+
+func (l *BaseLogicHandler) VerifyOTP(request gm.IRequest) (key string, keyType base.KeyType, err error) {
 	var body map[string]interface{}
 	err = g.BindJSON(request.GetContext(), &body)
 	if err != nil {
