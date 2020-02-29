@@ -105,9 +105,15 @@ func (otp *OTP) Verify(request gm.IRequest, code string) (err error) {
 }
 
 func (otp *OTP) GenerateCode() {
-	otp.Code = fmt.Sprintf("%v", rand.Intn(10000)+1000)
-	if base.CurrentConfig.Debug {
-		otp.Code = "1111"
+	if CurrentConfig.GenerateCodeFunc != nil {
+		otp.Code = CurrentConfig.GenerateCodeFunc(otp)
+	} else {
+		min := 1000
+		max := 10000
+		otp.Code = fmt.Sprintf("%v", rand.Intn(max-min)+min)
+		if base.CurrentConfig.Debug {
+			otp.Code = "1111"
+		}
 	}
 	return
 }

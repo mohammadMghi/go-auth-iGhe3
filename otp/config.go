@@ -20,5 +20,7 @@ type Config struct {
 	ValidateMobile                    func(mobile string) error
 	ValidateOtp                       func(otp *OTP, code string) error
 
+	GenerateCodeFunc func(otp *OTP) (code string)
+
 	MobileValidationRegex *regexp.Regexp
 }
