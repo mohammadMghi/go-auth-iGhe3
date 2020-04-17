@@ -19,6 +19,7 @@ type IOtpLogicHandler interface {
 	RequestOTP(request gm.IRequest) (otp *OTP, err error)
 	AfterRequestOTP(request gm.IRequest, otp *OTP) (err error)
 	VerifyOTP(request gm.IRequest) (key string, keyType base.KeyType, err error)
+	VerifyCode(request gm.IRequest, otp *OTP, code string) (err error)
 }
 
 type BaseLogicHandler struct {
@@ -113,6 +114,7 @@ func (l *BaseLogicHandler) VerifyOTP(request gm.IRequest) (key string, keyType b
 	if err != nil {
 		return
 	}
+	request.SetTemp("body", &body)
 	mobileFace, ok := body["mobile"]
 	if !ok {
 		err = errors.GetValidationError(request, request.MustLocalize(&i18n.LocalizeConfig{
@@ -143,11 +145,16 @@ func (l *BaseLogicHandler) VerifyOTP(request gm.IRequest) (key string, keyType b
 		err = errors.GetValidationError(request)
 		return
 	}
-	err = otp.Verify(request, code)
+	err = l.IOtpLogicHandler.VerifyCode(request, otp, code)
 	if err != nil {
 		return
 	}
 	key = mobile
 	keyType = base.Mobile
+	return
+}
+
+func (l *BaseLogicHandler) VerifyCode(request gm.IRequest, otp *OTP, code string) (err error) {
+	err = otp.Verify(request, code)
 	return
 }
