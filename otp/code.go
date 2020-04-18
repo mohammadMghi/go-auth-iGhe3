@@ -87,8 +87,17 @@ func (otp *OTP) Verify(request gm.IRequest, code string) (err error) {
 	if err != nil {
 		return
 	}
+	if otp.VerifyRetriesRemainingCount <= 0 {
+		err = errors.GetValidationError(request, request.MustLocalize(&i18n.LocalizeConfig{
+			DefaultMessage: &i18n.Message{
+				ID:    "MaximumOtpRetriesExceeded",
+				Other: "Maximum retries limit exceeded. try again later",
+			},
+		}))
+		return
+	}
 	maxRequestValidTime := lastCodeRequestTime.Add(CurrentConfig.CodeExpiration)
-	if code != otp.Code || otp.VerifyRetriesRemainingCount <= 0 ||
+	if code != otp.Code ||
 		time.Now().UTC().After(maxRequestValidTime) {
 		err = errors.GetValidationError(request)
 		return
@@ -162,7 +171,7 @@ func generateNewOTP(request gm.IRequest, mobile string) (otp *OTP, err error) {
 			return
 		}
 	}
-	if maxRequestRetries <= 0 {
+	if maxRequestRetries <= 0 || maxVerifyRetries <= 0 {
 		err = errors.GetValidationError(request, request.MustLocalize(&i18n.LocalizeConfig{
 			DefaultMessage: &i18n.Message{
 				ID:    "MaximumOtpRetriesExceeded",
