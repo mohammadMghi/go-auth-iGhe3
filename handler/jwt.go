@@ -158,14 +158,12 @@ func (h *JwtLoginHandler) Authenticate(request gm.IRequest) (err error) {
 				}
 			}
 		}
-		if tokenStr == "" {
+		if len(tokenStr) < 7 || strings.ToLower(tokenStr[:6]) != "bearer"{
 			err = errors.GetUnAuthorizedError(request)
 			return
 		}
-		splitToken := strings.Split(tokenStr, "bearer")
-		if len(splitToken) == 2 {
-			tokenStr = strings.TrimSpace(splitToken[1])
-		}
+		tokenStr = tokenStr[7:]
+		tokenStr = strings.TrimSpace(tokenStr)
 		req.Auth = h.ILoginHandler.NewAuthorization(tokenStr)
 	}
 	authorization := request.GetAuth().GetBase().(*JwtAuthorization)

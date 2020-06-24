@@ -79,6 +79,7 @@ func (h *DefaultHandler) Login(request gm.IRequest) (key string, keyType base.Ke
 	if err != nil {
 		return
 	}
+	request.SetTemp("body", &body)
 	keyFace, ok := body["key"]
 	if !ok {
 		err = errors.GetValidationError(request, request.MustLocalize(&i18n.LocalizeConfig{

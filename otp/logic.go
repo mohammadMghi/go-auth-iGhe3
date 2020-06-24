@@ -78,6 +78,7 @@ func (l *BaseLogicHandler) RequestOTP(request gm.IRequest) (otp *OTP, err error)
 	if err != nil {
 		return
 	}
+	request.SetTemp("body", &body)
 	mobileFace, ok := body["mobile"]
 	if !ok {
 		err = errors.GetValidationError(request, request.MustLocalize(&i18n.LocalizeConfig{
