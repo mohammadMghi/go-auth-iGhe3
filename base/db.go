@@ -1,8 +1,9 @@
 package base
 
 import (
+	"context"
 	"encoding/json"
-	"github.com/go-redis/redis"
+	"github.com/go-redis/redis/v8"
 	"time"
 )
 
@@ -34,7 +35,7 @@ func (h *redisHandler) Set(key string, value interface{}, expiration time.Durati
 	if err != nil {
 		return err
 	}
-	return client.Set(key, p, expiration).Err()
+	return client.Set(context.Background(), key, p, expiration).Err()
 }
 
 func (h *redisHandler) Get(key string, dest interface{}) error {
@@ -46,7 +47,7 @@ func (h *redisHandler) Get(key string, dest interface{}) error {
 			return
 		}
 	}()
-	p := client.Get(key).Val()
+	p := client.Get(context.Background(), key).Val()
 	if p != "" {
 		return json.Unmarshal([]byte(p), dest)
 	}

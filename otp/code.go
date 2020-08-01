@@ -1,6 +1,7 @@
 package otp
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	gm "github.com/go-ginger/models"
@@ -74,7 +75,7 @@ func (otp *OTP) Verify(request gm.IRequest, code string) (err error) {
 					err = e
 					return
 				}
-				e = client.Set(otp.Key, serializedOtp,
+				e = client.Set(context.Background(), otp.Key, serializedOtp,
 					time.Duration(math.Max(float64(CurrentConfig.CodeExpiration),
 						float64(CurrentConfig.ValidationExpiration)))).Err()
 				if e != nil {
@@ -204,7 +205,7 @@ func getOTP(mobile string) (otp *OTP, err error) {
 			log.Println(fmt.Sprintf("error while closing redis, err: %v", err))
 		}
 	}()
-	val := client.Get(getKey(mobile)).Val()
+	val := client.Get(context.Background(), getKey(mobile)).Val()
 	if val != "" {
 		otp = new(OTP)
 		err = json.Unmarshal([]byte(val), &otp)

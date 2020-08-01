@@ -1,6 +1,7 @@
 package refresh
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	gm "github.com/go-ginger/models"
@@ -55,14 +56,14 @@ func GetToken(request gm.IRequest, value string) (token *Token, err error) {
 		}
 	}()
 	key := getKey("*", value)
-	cmdVal := client.Do("KEYS", key).Val()
+	cmdVal := client.Do(context.Background(), "KEYS", key).Val()
 	keys := cmdVal.([]interface{})
 	if err != nil || len(keys) == 0 {
 		err = errors.GetNotFoundError(request)
 		return
 	}
 	key = keys[0].(string)
-	val := client.Get(key).Val()
+	val := client.Get(context.Background(), key).Val()
 	if val != "" {
 		token = new(Token)
 		err = json.Unmarshal([]byte(val), &token)
@@ -103,7 +104,7 @@ func deleteTokenByKey(key string) (deleted bool) {
 			log.Println(fmt.Sprintf("error while closing redis, err: %v", err))
 		}
 	}()
-	count := client.Del(key).Val()
+	count := client.Del(context.Background(), key).Val()
 	deleted = count > 0
 	return
 }
@@ -121,7 +122,7 @@ func DeleteAllAccountTokens(request gm.IRequest, accountID interface{}) {
 		}
 	}()
 	key := getKey(accountID, "*")
-	cmdVal := client.Do("KEYS", key).Val()
+	cmdVal := client.Do(context.Background(), "KEYS", key).Val()
 	keys := cmdVal.([]interface{})
 	if err != nil || len(keys) == 0 {
 		err = errors.GetNotFoundError(request)
