@@ -44,6 +44,10 @@ func New(accountID interface{}, key string, keyType base.KeyType, exp time.Durat
 }
 
 func GetToken(request gm.IRequest, value string) (token *Token, err error) {
+	if len(value) < 16 {
+		err = errors.GetNotFoundError(request)
+		return
+	}
 	client, err := base.RedisHandler.GetClient()
 	if err != nil {
 		return
