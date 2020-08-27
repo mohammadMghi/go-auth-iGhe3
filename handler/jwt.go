@@ -46,12 +46,14 @@ func (h *JwtLoginHandler) Initialize(handler base.ILoginHandler) {
 	h.ILoginHandler = handler
 }
 
-func (h *JwtLoginHandler) NewAuthorization(authInfo interface{}) gm.IAuthorization {
-	return &JwtAuthorization{
+func (h *JwtLoginHandler) NewAuthorization(request gm.IRequest, authInfo interface{}) gm.IAuthorization {
+	auth := &JwtAuthorization{
 		Authorization: base.Authorization{
 			Token: authInfo.(string),
 		},
 	}
+	auth.Initialize(request, auth)
+	return auth
 }
 
 func (h *JwtLoginHandler) GetProperties(key string, keyType base.KeyType) (properties map[string]interface{}, err error) {
@@ -142,52 +144,62 @@ func (h *JwtLoginHandler) Login(request gm.IRequest, config *base.Config, key st
 		}
 	}
 	req := request.GetBaseRequest()
-	req.Auth = h.ILoginHandler.NewAuthorization(tokenString)
+	req.Auth = h.ILoginHandler.NewAuthorization(request, tokenString)
 	return
 }
 
 func (h *JwtLoginHandler) Authenticate(request gm.IRequest) (err error) {
 	req := request.GetBaseRequest()
-	if req.Auth == nil {
-		tokenStr := req.Context.GetHeader("Authorization")
-		if tokenStr == "" {
+	var authToken string
+	// get authToken
+	if req.Auth != nil {
+		return
+	} else {
+		authToken = req.Context.GetHeader("Authorization")
+		if authToken == "" {
 			if base.CurrentConfig.CookieEnabled {
-				tokenStr, err = req.Context.Cookie(base.CurrentConfig.CookiePattern.Name)
+				authToken, err = req.Context.Cookie(base.CurrentConfig.CookiePattern.Name)
 				if err != nil {
 					return
 				}
 			}
 		}
-		if len(tokenStr) < 7 || strings.ToLower(tokenStr[:6]) != "bearer"{
+		if len(authToken) < 7 || strings.ToLower(authToken[:6]) != "bearer" {
 			err = errors.GetUnAuthorizedError(request)
 			return
 		}
-		tokenStr = tokenStr[7:]
-		tokenStr = strings.TrimSpace(tokenStr)
-		req.Auth = h.ILoginHandler.NewAuthorization(tokenStr)
+		authToken = authToken[7:]
+		authToken = strings.TrimSpace(authToken)
 	}
-	authorization := request.GetAuth().GetBase().(*JwtAuthorization)
-	if authorization.IsAuthenticated {
-		return
-	}
-	parsed, err := jwt.Parse(authorization.Token, func(token *jwt.Token) (interface{}, error) {
+	// parse & validate auth token
+	parsed, err := jwt.Parse(authToken, func(token *jwt.Token) (interface{}, error) {
 		return h.SecretKey, nil
 	})
 	if err != nil {
 		return
 	}
-	authorization.Claims = parsed.Claims.(jwt.MapClaims)
+	// just authenticated
+	isFirstTime := req.Auth == nil // determines if its first time authentication handled
+	// ensure auth is set in request model
+	if req.Auth == nil {
+		req.Auth = h.ILoginHandler.NewAuthorization(request, authToken)
+	}
+	jwtAuth := req.Auth.GetBase().(*JwtAuthorization)
+	jwtAuth.Claims = parsed.Claims.(jwt.MapClaims)
 	unixNow := time.Now().UTC().Unix()
-	authorization.IsAuthenticated = parsed.Valid &&
-		authorization.Claims.VerifyExpiresAt(unixNow, true) &&
-		authorization.Claims.VerifyNotBefore(unixNow, true)
-	rolesFace, exists := authorization.Claims["roles"]
+	jwtAuth.IsAuthenticated = parsed.Valid &&
+		jwtAuth.Claims.VerifyExpiresAt(unixNow, true) &&
+		jwtAuth.Claims.VerifyNotBefore(unixNow, true)
+	rolesFace, exists := jwtAuth.Claims["roles"]
 	if exists {
 		roles := make([]string, 0)
 		for _, roleFace := range rolesFace.([]interface{}) {
 			roles = append(roles, roleFace.(string))
 		}
-		authorization.Roles = roles
+		jwtAuth.Roles = roles
+	}
+	if isFirstTime {
+		req.Auth.Initialize(request, req.Auth)
 	}
 	return
 }

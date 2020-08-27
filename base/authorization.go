@@ -12,6 +12,10 @@ type Authorization struct {
 	Roles           []string
 }
 
+func (a *Authorization) Initialize(request gm.IRequest, authorization gm.IAuthorization) {
+	a.IAuthorization = authorization
+}
+
 func (a *Authorization) GetBase() gm.IAuthorization {
 	return a
 }
