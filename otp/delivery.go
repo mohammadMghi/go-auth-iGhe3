@@ -77,7 +77,8 @@ func (c verifyHandler) Post(request gm.IRequest) (result interface{}) {
 	if err := c.uc.Verify(request, model); c.HandleErrorNoResult(request, err) {
 		return
 	}
-	if err := base.HandleLoginResponse(request, model.GetKey(), model.GetKeyType()); c.HandleErrorNoResult(request, err) {
+	if err := base.HandleLoginResponse(request, model.GetKey(),
+		model.GetKeyType()); c.HandleErrorNoResult(request, err) {
 		return
 	}
 	return

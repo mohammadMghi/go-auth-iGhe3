@@ -280,7 +280,7 @@ func (h handler) Verify(request gm.IRequest, otpRequest RequestModel) (err error
 	}
 	otp := h.Get(request, otpRequest)
 	if otp == nil {
-		err = errors.GetForbiddenError(request)
+		err = errors.GetUnAuthorizedError(request)
 		return
 	}
 	verifyRetriesRemainingCount := otp.GetVerifyRetriesRemainingCount()
@@ -298,8 +298,8 @@ func (h handler) Verify(request gm.IRequest, otpRequest RequestModel) (err error
 			// as many times as wants!
 			if verifyRetriesRemainingCount > 0 {
 				otp.SetVerifyRetriesRemainingCount(verifyRetriesRemainingCount - 1)
-				err = h.Save(request, otp)
-				if err != nil {
+				if e := h.Save(request, otp); e != nil {
+					err = e
 					return
 				}
 			}
@@ -309,7 +309,7 @@ func (h handler) Verify(request gm.IRequest, otpRequest RequestModel) (err error
 		return
 	}
 	if verifyRetriesRemainingCount <= 0 {
-		err = errors.GetValidationError(request, request.MustLocalize(&i18n.LocalizeConfig{
+		err = errors.GetForbiddenError(request, request.MustLocalize(&i18n.LocalizeConfig{
 			DefaultMessage: &i18n.Message{
 				ID:    "MaximumOtpRetriesExceeded",
 				Other: "Maximum retries limit exceeded. try again later",
@@ -322,7 +322,7 @@ func (h handler) Verify(request gm.IRequest, otpRequest RequestModel) (err error
 	code := otpRequest.GetCode()
 	if code != otp.GetCode() ||
 		time.Now().UTC().After(maxRequestValidTime) {
-		err = errors.GetValidationError(request)
+		err = errors.GetUnAuthorizedError(request)
 		return
 	}
 	if h.verifier != nil {
