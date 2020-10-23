@@ -118,6 +118,8 @@ type HandlerConfig struct {
 type HandlerModel interface {
 	WithCodeGenerator(generator CodeGenerator) HandlerModel
 	WithVerifier(verifier Verifier) HandlerModel
+	Normalize(request gm.IRequest, otpRequest RequestModel) (err error)
+	Validate(request gm.IRequest, otpRequest RequestModel) (err error)
 	New(request gm.IRequest, otpRequest RequestModel) (otp OTP, err error)
 	Get(request gm.IRequest, otpRequest RequestModel) (otp OTP)
 	Save(request gm.IRequest, otp OTP) (err error)
@@ -149,6 +151,14 @@ func (h *handler) WithCodeGenerator(generator CodeGenerator) HandlerModel {
 func (h *handler) WithVerifier(verifier Verifier) HandlerModel {
 	h.verifier = verifier
 	return h
+}
+
+func (h handler) Normalize(request gm.IRequest, otpRequest RequestModel) (err error) {
+	return
+}
+
+func (h handler) Validate(request gm.IRequest, otpRequest RequestModel) (err error) {
+	return
 }
 
 func (h handler) New(request gm.IRequest, otpRequest RequestModel) (result OTP, err error) {

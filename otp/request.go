@@ -6,9 +6,9 @@ import (
 )
 
 type RequestModel interface {
-	WithKeyType(keyType base.KeyType) RequestModel
-	WithKey(key string) RequestModel
-	WithCode(code string) RequestModel
+	SetKeyType(keyType base.KeyType)
+	SetKey(key string)
+	SetCode(code string)
 	GetID() string
 	GetKeyType() base.KeyType
 	GetKey() string
@@ -30,19 +30,16 @@ func (r request) GetID() string {
 	return fmt.Sprintf("otp:%s:%s", r.keyType, r.key)
 }
 
-func (r *request) WithKeyType(keyType base.KeyType) RequestModel {
+func (r *request) SetKeyType(keyType base.KeyType) {
 	r.keyType = keyType
-	return r
 }
 
-func (r *request) WithKey(key string) RequestModel {
+func (r *request) SetKey(key string) {
 	r.key = key
-	return r
 }
 
-func (r *request) WithCode(code string) RequestModel {
+func (r *request) SetCode(code string) {
 	r.code = code
-	return r
 }
 
 func (r request) GetKeyType() base.KeyType {
