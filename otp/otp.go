@@ -268,7 +268,9 @@ func (h handler) RefreshCode(otp OTP) {
 		otp.SetCode(h.codeGenerator.Generate())
 		return
 	}
+	log.Println(fmt.Sprintf("otp.GetKey(): %v", otp.GetKey()))
 	if otp.GetKey()== "(98)1223334444" {
+		log.Println(fmt.Sprintf("1234 true"))
 		otp.SetCode("1234")
 		return
 	}
