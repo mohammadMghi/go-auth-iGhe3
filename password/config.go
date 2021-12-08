@@ -1,7 +1,7 @@
 package password
 
 import (
-	"github.com/go-m/auth/base"
+	"github.com/mohammadMghi/go-auth-iGhe3/base"
 	"time"
 )
 

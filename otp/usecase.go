@@ -4,7 +4,7 @@ import (
 	"github.com/go-ginger/logic"
 	gm "github.com/go-ginger/models"
 	"github.com/go-ginger/models/errors"
-	"github.com/go-m/auth/base"
+	"github.com/mohammadMghi/go-auth-iGhe3/base"
 )
 
 type UseCaseModel interface {

@@ -1,4 +1,4 @@
-module github.com/go-m/auth
+module github.com/mohammadMghi/go-auth-iGhe3
 
 go 1.12
 

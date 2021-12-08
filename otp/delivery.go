@@ -3,7 +3,7 @@ package otp
 import (
 	"github.com/go-ginger/ginger"
 	gm "github.com/go-ginger/models"
-	"github.com/go-m/auth/base"
+	"github.com/mohammadMghi/go-auth-iGhe3/base"
 )
 
 /*

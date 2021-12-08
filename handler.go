@@ -2,10 +2,10 @@ package auth
 
 import (
 	"errors"
-	"github.com/go-m/auth/base"
-	"github.com/go-m/auth/handler"
-	"github.com/go-m/auth/password"
-	"github.com/go-m/auth/refresh"
+	"github.com/mohammadMghi/go-auth-iGhe3/base"
+	"github.com/mohammadMghi/go-auth-iGhe3/handler"
+	"github.com/mohammadMghi/go-auth-iGhe3/password"
+	"github.com/mohammadMghi/go-auth-iGhe3/refresh"
 	"math/rand"
 	"net/http"
 	"time"

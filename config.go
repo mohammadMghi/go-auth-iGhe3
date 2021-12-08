@@ -2,8 +2,8 @@ package auth
 
 import (
 	g "github.com/go-ginger/ginger"
-	"github.com/go-m/auth/base"
-	"github.com/go-m/auth/password"
+	"github.com/mohammadMghi/go-auth-iGhe3/base"
+	"github.com/mohammadMghi/go-auth-iGhe3/password"
 )
 
 type Config struct {
