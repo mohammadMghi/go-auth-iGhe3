@@ -181,24 +181,24 @@ func (h handler) New(request gm.IRequest, otpRequest RequestModel) (result OTP, 
 		if !h.config.ResetMaxVerifyRetriesOnNewRequest {
 			maxVerifyRetries = existingOTP.GetVerifyRetriesRemainingCount()
 		}
-		now := time.Now().UTC()
-		diff := existingOTP.GetLastCodeRequestTime().Add(h.config.RequestRetryLimitDuration).Sub(now)
-		if diff > 0 {
-			minutes := int(diff.Minutes())
-			err = errors.GetValidationError(request, request.MustLocalize(&i18n.LocalizeConfig{
-				DefaultMessage: &i18n.Message{
-					ID:    "RetryOtpRequestAfter",
-					One:   "You can retry request after {{.Seconds}} seconds",
-					Other: "You can retry request after {{.Minutes}} minutes and {{.Seconds}} seconds",
-				},
-				TemplateData: map[string]string{
-					"Minutes": strconv.Itoa(minutes),
-					"Seconds": strconv.Itoa(int(diff.Seconds() + 1)),
-				},
-				PluralCount: minutes + 1,
-			}))
-			return
-		}
+		//now := time.Now().UTC()
+		//diff := existingOTP.GetLastCodeRequestTime().Add(h.config.RequestRetryLimitDuration).Sub(now)
+		//if diff > 0 {
+		//	minutes := int(diff.Minutes())
+		//	err = errors.GetValidationError(request, request.MustLocalize(&i18n.LocalizeConfig{
+		//		DefaultMessage: &i18n.Message{
+		//			ID:    "RetryOtpRequestAfter",
+		//			One:   "You can retry request after {{.Seconds}} seconds",
+		//			Other: "You can retry request after {{.Minutes}} minutes and {{.Seconds}} seconds",
+		//		},
+		//		TemplateData: map[string]string{
+		//			"Minutes": strconv.Itoa(minutes),
+		//			"Seconds": strconv.Itoa(int(diff.Seconds() + 1)),
+		//		},
+		//		PluralCount: minutes + 1,
+		//	}))
+		//	return
+		//}
 	}
 	if maxRequestRetries <= 0 || maxVerifyRetries <= 0 {
 		err = errors.GetValidationError(request, request.MustLocalize(&i18n.LocalizeConfig{
